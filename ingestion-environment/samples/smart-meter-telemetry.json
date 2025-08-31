@@ -1,0 +1,21 @@
+{
+    "deviceId": "SM-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "SmartMeter",
+    "eventType": "Telemetry",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "energyConsumption": "${__Random(0,500)}",
+        "energyGeneration": "${__Random(0,300)}",
+        "voltage": "${__Random(210,230)}",
+        "current": "${__Random(1,20)}",
+        "powerFactor": "${__Random(70,100)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "MainPanel",
+        "deviceCategory": "SmartMeter",
+        "deviceModel": "ABB-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

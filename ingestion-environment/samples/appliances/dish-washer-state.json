@@ -1,0 +1,19 @@
+{
+    "deviceId": "DW-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "Appliance",
+    "eventType": "State",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "operationStatus": "${__chooseRandom(On|Off)}",
+        "cyclePhase": "${__chooseRandom(Idle|Prewash|Wash|Rinse|Dry|Completed)}",
+        "doorStatus": "${__chooseRandom(Open|Closed)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "Kitchen",
+        "deviceCategory": "Dishwasher",
+        "deviceModel": "DW-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

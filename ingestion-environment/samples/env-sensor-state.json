@@ -1,0 +1,19 @@
+{
+    "deviceId": "ES-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "EnvironmentalSensor",
+    "eventType": "State",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "sensorStatus": "${__chooseRandom(Active|Inactive|Faulty)}",
+        "batteryLevelPct": "${__Random(10,100)}",
+        "occupancy": "${__chooseRandom(Occupied|Vacant)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "LivingRoom",
+        "deviceCategory": "EnvSensor",
+        "deviceModel": "Env-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

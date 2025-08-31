@@ -1,0 +1,20 @@
+{
+    "deviceId": "ES-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "EnvironmentalSensor",
+    "eventType": "Telemetry",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "temperatureC": "${__Random(15,35)}",
+        "humidityPct": "${__Random(20,90)}",
+        "co2ppm": "${__Random(400,2000)}",
+        "luminanceLux": "${__Random(0,1200)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "LivingRoom",
+        "deviceCategory": "EnvSensor",
+        "deviceModel": "Env-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

@@ -1,0 +1,19 @@
+{
+    "deviceId": "RF-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "Appliance",
+    "eventType": "State",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "powerState": "${__chooseRandom(On|Off)}",
+        "doorStatus": "${__chooseRandom(Open|Closed)}",
+        "mode": "${__chooseRandom(Normal|Eco|Turbo)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "Kitchen",
+        "deviceCategory": "Refrigerator",
+        "deviceModel": "RF-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

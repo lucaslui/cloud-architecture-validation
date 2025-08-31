@@ -1,0 +1,21 @@
+{
+    "deviceId": "BAT-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "BatteryBank",
+    "eventType": "Telemetry",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "stateOfChargePct": "${__Random(10,100)}",
+        "powerFlowW": "${__chooseRandom(-4000|-2500|-1500|0|1200|2500)}",
+        "voltage": "${__Random(48,56)}",
+        "currentA": "${__chooseRandom(-80|-40|0|20|50)}",
+        "temperatureC": "${__Random(15,45)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "UtilityRoom",
+        "deviceCategory": "Battery",
+        "deviceModel": "ESS-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

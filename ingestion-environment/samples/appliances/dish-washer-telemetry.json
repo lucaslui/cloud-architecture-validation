@@ -1,0 +1,21 @@
+{
+    "deviceId": "DW-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "Appliance",
+    "eventType": "Telemetry",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "voltage": "${__Random(210,230)}",
+        "current": "${__Random(0,12)}",
+        "activePowerW": "${__Random(0,2200)}",
+        "waterTempC": "${__Random(30,70)}",
+        "cycleRemainingSec": "${__Random(0,7200)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "Kitchen",
+        "deviceCategory": "Dishwasher",
+        "deviceModel": "DW-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

@@ -1,0 +1,23 @@
+{
+    "deviceId": "RF-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "Appliance",
+    "eventType": "Telemetry",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "voltage": "${__Random(210,230)}",
+        "current": "${__Random(0,4)}",
+        "activePowerW": "${__Random(15,220)}",
+        "compCyclePct": "${__Random(10,90)}",
+        "fridgeTempC": "${__Random(1,7)}",
+        "freezerTempC": "${__Random(-22,-15)}",
+        "doorOpenSec": "${__Random(0,1800)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "Kitchen",
+        "deviceCategory": "Refrigerator",
+        "deviceModel": "RF-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

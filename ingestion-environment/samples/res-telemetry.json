@@ -1,0 +1,22 @@
+{
+    "deviceId": "RES-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "RES",
+    "eventType": "Telemetry",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "generatedPowerW": "${__Random(0,7000)}",
+        "inverterVoltage": "${__Random(210,240)}",
+        "inverterCurrent": "${__Random(0,40)}",
+        "frequencyHz": "${__Random(59,61)}",
+        "powerFactor": "${__Random(90,100)}",
+        "solarIrradianceWm2": "${__Random(0,1100)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "Roof",
+        "deviceCategory": "RES",
+        "deviceModel": "InverterX${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

@@ -1,0 +1,21 @@
+{
+    "deviceId": "SM-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "SmartMeter",
+    "eventType": "State",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "connectivityStatus": "${__chooseRandom(Online|Offline)}",
+        "breakerStatus": "${__chooseRandom(Closed|Open)}",
+        "phaseConfiguration": "${__chooseRandom(SinglePhase|TwoPhase|ThreePhase)}",
+        "meterMode": "${__chooseRandom(NetMetering|ImportOnly)}",
+        "tariffType": "${__chooseRandom(Conventional|TimeOfUse)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "MainPanel",
+        "deviceCategory": "SmartMeter",
+        "deviceModel": "ABB-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}

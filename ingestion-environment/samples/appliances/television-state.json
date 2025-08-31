@@ -1,0 +1,19 @@
+{
+    "deviceId": "TV-${__RandomString(6,abcdef0123456789)}",
+    "deviceType": "Appliance",
+    "eventType": "State",
+    "schemaVersion": "1.0",
+    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "payload": {
+        "powerState": "${__chooseRandom(On|Off|Standby)}",
+        "inputSource": "${__chooseRandom(HDMI1|HDMI2|Tuner|App)}",
+        "network": "${__chooseRandom(WiFi|Ethernet|Offline)}"
+    },
+    "metadata": {
+        "regionId": "SP-Campinas-${__Random(1,5)}",
+        "deviceLocation": "LivingRoom",
+        "deviceCategory": "Television",
+        "deviceModel": "TV-${__Random(100,999)}",
+        "endUserId": "user-${__Random(1,9999)}"
+    }
+}
