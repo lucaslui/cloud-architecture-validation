@@ -7,11 +7,11 @@
     "payload": {
         "voltage": "${__Random(210,230)}",
         "current": "${__Random(0,4)}",
-        "activePowerW": "${__Random(15,220)}",
-        "compCyclePct": "${__Random(10,90)}",
-        "fridgeTempC": "${__Random(1,7)}",
-        "freezerTempC": "${__Random(-22,-15)}",
-        "doorOpenSec": "${__Random(0,1800)}"
+        "activePowerW": "${__Random(0,300)}",
+        "reactivePowerVar": "${__Random(0,300)}",
+        "apparentPowerVA": "${__Random(0,350)}",
+        "powerFactorPct": "${__Random(70,100)}",
+        "frequencyHz": "${__Random(59,61)}"
     },
     "metadata": {
         "regionId": "SP-Campinas-${__Random(1,5)}",

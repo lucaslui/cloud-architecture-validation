@@ -8,8 +8,10 @@
         "voltage": "${__Random(210,230)}",
         "current": "${__Random(0,12)}",
         "activePowerW": "${__Random(0,2200)}",
-        "waterTempC": "${__Random(30,70)}",
-        "cycleRemainingSec": "${__Random(0,7200)}"
+        "reactivePowerVar": "${__Random(0,1200)}",
+        "apparentPowerVA": "${__Random(0,2400)}",
+        "powerFactorPct": "${__Random(70,100)}",
+        "frequencyHz": "${__Random(59,61)}"
     },
     "metadata": {
         "regionId": "SP-Campinas-${__Random(1,5)}",

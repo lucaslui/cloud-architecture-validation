@@ -8,9 +8,10 @@
         "voltage": "${__Random(210,230)}",
         "current": "${__Random(0,2)}",
         "activePowerW": "${__Random(0,200)}",
-        "brightnessPct": "${__Random(10,100)}",
-        "volumePct": "${__Random(0,100)}",
-        "appActive": "${__chooseRandom(YouTube|Netflix|Prime|None)}"
+        "reactivePowerVar": "${__Random(0,100)}",
+        "apparentPowerVA": "${__Random(0,220)}",
+        "powerFactorPct": "${__Random(70,100)}",
+        "frequencyHz": "${__Random(59,61)}"
     },
     "metadata": {
         "regionId": "SP-Campinas-${__Random(1,5)}",
