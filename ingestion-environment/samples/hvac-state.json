@@ -5,8 +5,8 @@
     "schemaVersion": "1.0",
     "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
     "payload": {
-        "powerState": "${__chooseRandom(On|Off)}",
-        "operatingMode": "${__chooseRandom(Cooling|Heating|Ventilating)}",
+        "powerState": "${__chooseRandom(On,Off)}",
+        "operatingMode": "${__chooseRandom(Cooling,Heating,Ventilating)}",
         "setpointTemperature": "${__Random(18,26)}"
     },
     "metadata": {

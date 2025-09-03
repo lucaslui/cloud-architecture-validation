@@ -5,10 +5,10 @@
     "schemaVersion": "1.0",
     "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
     "payload": {
-        "pluggedIn": "${__chooseRandom(True|False)}",
-        "chargingStatus": "${__chooseRandom(Charging|NotCharging|Completed|Fault)}",
-        "connectorType": "${__chooseRandom(Type2|CCS|CHAdeMO)}",
-        "lockState": "${__chooseRandom(Locked|Unlocked)}"
+        "pluggedIn": "${__chooseRandom(True,False)}",
+        "chargingStatus": "${__chooseRandom(Charging,NotCharging,Completed,Fault)}",
+        "connectorType": "${__chooseRandom(Type2,CCS,CHAdeMO)}",
+        "lockState": "${__chooseRandom(Locked,Unlocked)}"
     },
     "metadata": {
         "regionId": "SP-Campinas-${__Random(1,5)}",

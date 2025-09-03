@@ -1,11 +1,17 @@
 {
     "deviceId": "WM-${__RandomString(6,abcdef0123456789)}",
     "deviceType": "Appliance",
-    "eventType": "State",
+    "eventType": "Telemetry",
     "schemaVersion": "1.0",
     "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
     "payload": {
-        "powerState": "${__chooseRandom(On|Off)}"
+        "voltage": "${__Random(210,230)}",
+        "current": "${__Random(0,12)}",
+        "activePowerW": "${__Random(0,2500)}",
+        "reactivePowerVar": "${__Random(0,1250)}",
+        "apparentPowerVA": "${__Random(0,2800)}",
+        "powerFactorPct": "${__Random(70,100)}",
+        "frequencyHz": "${__Random(59,61)}"
     },
     "metadata": {
         "regionId": "SP-Campinas-${__Random(1,5)}",

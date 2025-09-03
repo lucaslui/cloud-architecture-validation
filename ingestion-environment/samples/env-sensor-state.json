@@ -5,9 +5,9 @@
     "schemaVersion": "1.0",
     "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
     "payload": {
-        "sensorStatus": "${__chooseRandom(Active|Inactive|Faulty)}",
+        "sensorStatus": "${__chooseRandom(Active,Inactive,Faulty)}",
         "batteryLevelPct": "${__Random(10,100)}",
-        "occupancy": "${__chooseRandom(Occupied|Vacant)}"
+        "occupancy": "${__chooseRandom(Occupied,Vacant)}"
     },
     "metadata": {
         "regionId": "SP-Campinas-${__Random(1,5)}",
