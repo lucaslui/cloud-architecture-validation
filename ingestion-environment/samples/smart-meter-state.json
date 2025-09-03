@@ -1,5 +1,5 @@
 {
-    "deviceId": "SM-${__RandomString(6,abcdef0123456789)}",
+    "deviceId": "SM-HOME-${HOME_NUMBER}",
     "deviceType": "SmartMeter",
     "eventType": "State",
     "schemaVersion": "1.0",

@@ -1,5 +1,5 @@
 {
-    "deviceId": "BAT-${__RandomString(6,abcdef0123456789)}",
+    "deviceId": "BAT-HOME-${HOME_NUMBER}",
     "deviceType": "BatteryBank",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",

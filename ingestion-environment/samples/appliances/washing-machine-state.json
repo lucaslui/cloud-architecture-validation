@@ -1,5 +1,5 @@
 {
-    "deviceId": "WM-${__RandomString(6,abcdef0123456789)}",
+    "deviceId": "WM-HOME-${HOME_NUMBER}",
     "deviceType": "Appliance",
     "eventType": "State",
     "schemaVersion": "1.0",

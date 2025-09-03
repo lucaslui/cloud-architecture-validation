@@ -1,5 +1,5 @@
 {
-    "deviceId": "ES-${__RandomString(6,abcdef0123456789)}",
+    "deviceId": "ES-HOME-${HOME_NUMBER}",
     "deviceType": "EnvironmentalSensor",
     "eventType": "State",
     "schemaVersion": "1.0",

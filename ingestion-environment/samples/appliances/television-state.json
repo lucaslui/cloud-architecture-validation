@@ -1,5 +1,5 @@
 {
-    "deviceId": "RF-${__RandomString(6,abcdef0123456789)}",
+    "deviceId": "RF-HOME-${HOME_NUMBER}",
     "deviceType": "Appliance",
     "eventType": "State",
     "schemaVersion": "1.0",

@@ -1,5 +1,5 @@
 {
-    "deviceId": "AC-${__RandomString(5,ABCDEF012345)}",
+    "deviceId": "AC-HOME-${HOME_NUMBER}",
     "deviceType": "HVAC",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",
