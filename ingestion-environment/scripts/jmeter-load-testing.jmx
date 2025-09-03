@@ -5,6 +5,8 @@
       <elementProp name="TestPlan.user_defined_variables" elementType="Arguments" guiclass="ArgumentsPanel" testclass="Arguments" testname="User Defined Variables">
         <collectionProp name="Arguments.arguments"/>
       </elementProp>
+      <boolProp name="TestPlan.functional_mode">false</boolProp>
+      <boolProp name="TestPlan.serialize_threadgroups">false</boolProp>
     </TestPlan>
     <hashTree>
       <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Broker Parameters">
@@ -37,16 +39,16 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters" enabled="true">
         <collectionProp name="Arguments.arguments">
           <elementProp name="NumberHomes" elementType="Argument">
             <stringProp name="Argument.name">NumberHomes</stringProp>
-            <stringProp name="Argument.value">10</stringProp>
+            <stringProp name="Argument.value">1</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="NumberMessages" elementType="Argument">
             <stringProp name="Argument.name">NumberMessages</stringProp>
-            <stringProp name="Argument.value">100</stringProp>
+            <stringProp name="Argument.value">10</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="PayloadSize" elementType="Argument">
@@ -69,6 +71,11 @@
             <stringProp name="Argument.value">10</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="SAMPLES_DIR" elementType="Argument">
+            <stringProp name="Argument.name">SAMPLES_DIR</stringProp>
+            <stringProp name="Argument.value">/home/lucasmotta/Desktop/cloud-architecture-validation/ingestion-environment/samples</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
         </collectionProp>
       </Arguments>
       <hashTree/>
@@ -83,14 +90,23 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Time (Group Threads)">
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Time (Group Threads)" enabled="true">
           <stringProp name="groupSize">${NumberHomes}</stringProp>
           <longProp name="timeoutInMs">10000</longProp>
         </SyncTimer>
         <hashTree/>
-        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller"/>
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter">
+          <stringProp name="CounterConfig.start">1</stringProp>
+          <stringProp name="CounterConfig.end"></stringProp>
+          <stringProp name="CounterConfig.incr">1</stringProp>
+          <stringProp name="CounterConfig.name">HOME_NUMBER</stringProp>
+          <stringProp name="CounterConfig.format"></stringProp>
+          <boolProp name="CounterConfig.per_user">false</boolProp>
+        </CounterConfig>
+        <hashTree/>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller" enabled="true"/>
         <hashTree>
-          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher">
+          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher" enabled="true">
             <stringProp name="mqtt.server">${BrokerHost}</stringProp>
             <stringProp name="mqtt.port">${BrokerPort}</stringProp>
             <stringProp name="mqtt.version">3.1.1</stringProp>
@@ -111,7 +127,7 @@
           </net.xmeter.samplers.ConnectSampler>
           <hashTree/>
         </hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="false">
           <stringProp name="LoopController.loops">${NumberMessages}</stringProp>
         </LoopController>
         <hashTree>
@@ -125,7 +141,7 @@
             <boolProp name="mqtt.retained_message">false</boolProp>
           </net.xmeter.samplers.PubSampler>
           <hashTree/>
-          <net.xmeter.samplers.PubSampler guiclass="net.xmeter.gui.PubSamplerUI" testclass="net.xmeter.samplers.PubSampler" testname="MQTT Pub Sampler (Defined Payload)">
+          <net.xmeter.samplers.PubSampler guiclass="net.xmeter.gui.PubSamplerUI" testclass="net.xmeter.samplers.PubSampler" testname="MQTT Pub Sampler (Defined Payload)" enabled="false">
             <stringProp name="mqtt.topic_name">${Topic}</stringProp>
             <stringProp name="mqtt.qos_level">${QoS}</stringProp>
             <boolProp name="mqtt.add_timestamp">false</boolProp>
@@ -136,13 +152,106 @@
             <boolProp name="mqtt.retained_message">false</boolProp>
           </net.xmeter.samplers.PubSampler>
           <hashTree/>
+          <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer (Delay Per Message Ms)" enabled="false">
+            <stringProp name="ConstantTimer.delay">${DelayPerMessageMs}</stringProp>
+          </ConstantTimer>
+          <hashTree/>
+        </hashTree>
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+          <stringProp name="LoopController.loops">${NumberMessages}</stringProp>
+        </LoopController>
+        <hashTree>
+          <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor">
+            <stringProp name="cacheKey">true</stringProp>
+            <stringProp name="filename"></stringProp>
+            <stringProp name="parameters"></stringProp>
+            <stringProp name="script">import java.util.concurrent.ThreadLocalRandom
+import org.apache.commons.io.FileUtils
+import org.apache.jmeter.engine.util.CompoundVariable
+
+// ===== Configs =====
+def base = vars.get(&apos;SAMPLES_DIR&apos;)
+if (!base) throw new IllegalStateException(&apos;SAMPLES_DIR não definido (use -JSAMPLES_DIR=/abs/path/para/samples)&apos;)
+
+// Pesos Telemetry/State (ajuste via -JTELEMETRY_WEIGHT / -JSTATE_WEIGHT)
+int wTel = (props.get(&apos;TELEMETRY_WEIGHT&apos;) ?: &apos;80&apos;) as int
+int wSta = (props.get(&apos;STATE_WEIGHT&apos;)   ?: &apos;20&apos;) as int
+boolean includeState = ((props.get(&apos;INCLUDE_STATE&apos;) ?: &apos;yes&apos;).equalsIgnoreCase(&apos;yes&apos;))
+
+// Catálogo de arquivos (ajuste p/ sua árvore)
+def all = [
+  [path:&apos;appliances/dish-washer-telemetry.json&apos;,  deviceType:&apos;Appliance&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;appliances/dish-washer-state.json&apos;,      deviceType:&apos;Appliance&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;appliances/refrigerator-telemetry.json&apos;, deviceType:&apos;Appliance&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;appliances/refrigerator-state.json&apos;,     deviceType:&apos;Appliance&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;appliances/television-telemetry.json&apos;,   deviceType:&apos;Appliance&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;appliances/television-state.json&apos;,       deviceType:&apos;Appliance&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;appliances/washing-machine-telemetry.json&apos;, deviceType:&apos;Appliance&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;appliances/washing-machine-state.json&apos;,     deviceType:&apos;Appliance&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;battery-bank-telemetry.json&apos;, deviceType:&apos;BatteryBank&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;battery-bank-state.json&apos;,     deviceType:&apos;BatteryBank&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;env-sensor-telemetry.json&apos;, deviceType:&apos;EnvironmentalSensor&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;env-sensor-state.json&apos;,     deviceType:&apos;EnvironmentalSensor&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;ev-telemetry.json&apos;, deviceType:&apos;ElectricVehicle&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;ev-state.json&apos;,     deviceType:&apos;ElectricVehicle&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;hvac-telemetry.json&apos;, deviceType:&apos;HVAC&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;hvac-state.json&apos;,     deviceType:&apos;HVAC&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;res-telemetry.json&apos;, deviceType:&apos;RES&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;res-state.json&apos;,     deviceType:&apos;RES&apos;, eventType:&apos;State&apos;,     weight:wSta],
+  [path:&apos;smart-meter-telemetry.json&apos;, deviceType:&apos;SmartMeter&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
+  [path:&apos;smart-meter-state.json&apos;,     deviceType:&apos;SmartMeter&apos;, eventType:&apos;State&apos;,     weight:wSta],
+]
+def entries = includeState ? all : all.findAll{ it.eventType == &apos;Telemetry&apos; }
+
+// Escolha ponderada
+int total = entries.sum{ it.weight as int } as int
+int r = ThreadLocalRandom.current().nextInt(Math.max(total,1))
+def pick = null; int acc = 0
+for (e in entries){ acc += (e.weight as int); if (r &lt; acc){ pick = e; break } }
+if (pick == null) throw new IllegalStateException(&apos;Nenhum payload selecionado&apos;)
+
+// Lê arquivo
+def file = new File(base, pick.path)
+if (!file.exists()) throw new FileNotFoundException(&quot;Arquivo não encontrado: &quot; + file)
+def raw = FileUtils.readFileToString(file, &apos;UTF-8&apos;)
+
+// Substitui __chooseRandom(...) mesmo sem plugin (suporta &apos;,&apos; ou &apos;|&apos;)
+raw = raw.replaceAll(/\$\{__chooseRandom\(([^}]*)\)\}/) { allTxt, inside -&gt;
+  def opts = inside.split(/[|,]/).collect{ it.trim() }.findAll{ it }
+  if (opts.isEmpty()) return allTxt
+  opts[ThreadLocalRandom.current().nextInt(opts.size())]
+}
+
+// Avalia demais funções do JMeter no texto (ex.: __Random, __time, etc.)
+def evaluated = new CompoundVariable(raw).execute()
+
+// Injeta no payload do sampler
+vars.put(&apos;BODY&apos;, evaluated)
+
+// (Opcional) debug:
+// log.info(&quot;HEMS -&gt; &quot; + pick.path + &quot;  bytes=&quot; + evaluated.length())
+</stringProp>
+            <stringProp name="scriptLanguage">groovy</stringProp>
+          </JSR223PreProcessor>
+          <hashTree/>
+          <net.xmeter.samplers.PubSampler guiclass="net.xmeter.gui.PubSamplerUI" testclass="net.xmeter.samplers.PubSampler" testname="MQTT Pub Sampler (Defined Payload)">
+            <stringProp name="mqtt.topic_name">${Topic}</stringProp>
+            <stringProp name="mqtt.qos_level">${QoS}</stringProp>
+            <boolProp name="mqtt.add_timestamp">false</boolProp>
+            <stringProp name="mqtt.message_type">String</stringProp>
+            <stringProp name="mqtt.message_type_fixed_length">${PayloadSize}</stringProp>
+            <stringProp name="mqtt.message_to_sent">${BODY}
+</stringProp>
+            <boolProp name="mqtt.retained_message">false</boolProp>
+          </net.xmeter.samplers.PubSampler>
+          <hashTree/>
           <ConstantTimer guiclass="ConstantTimerGui" testclass="ConstantTimer" testname="Constant Timer (Delay Per Message Ms)">
             <stringProp name="ConstantTimer.delay">${DelayPerMessageMs}</stringProp>
           </ConstantTimer>
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -179,7 +288,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -216,7 +325,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report">
+      <ResultCollector guiclass="StatVisualizer" testclass="ResultCollector" testname="Aggregate Report" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -253,7 +362,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <kg.apc.jmeter.perfmon.PerfMonCollector guiclass="kg.apc.jmeter.vizualizers.PerfMonGui" testclass="kg.apc.jmeter.perfmon.PerfMonCollector" testname="jp@gc - PerfMon Metrics Collector">
+      <kg.apc.jmeter.perfmon.PerfMonCollector guiclass="kg.apc.jmeter.vizualizers.PerfMonGui" testclass="kg.apc.jmeter.perfmon.PerfMonCollector" testname="jp@gc - PerfMon Metrics Collector" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
