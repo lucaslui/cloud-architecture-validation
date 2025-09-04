@@ -1,0 +1,55 @@
+services:
+  vernemq:
+    image: vernemq/vernemq:latest
+    container_name: vernemq
+    environment:
+      - DOCKER_VERNEMQ_ACCEPT_EULA=yes
+      - DOCKER_VERNEMQ_ALLOW_ANONYMOUS=on
+      - DOCKER_VERNEMQ_LISTENER__TCP__DEFAULT=0.0.0.0:1883
+      - DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST=127.0.0.1:1882
+      - DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL=info
+    ports:
+      - "1883:1883"
+
+  kafka:
+    image: bitnami/kafka:3.7
+    container_name: kafka
+    environment:
+      - KAFKA_CFG_NODE_ID=1
+      - KAFKA_CFG_PROCESS_ROLES=broker,controller
+      - KAFKA_CFG_CONTROLLER_LISTENER_NAMES=CONTROLLER
+      - KAFKA_CFG_CONTROLLER_QUORUM_VOTERS=1@kafka:9093
+      - KAFKA_CFG_AUTO_CREATE_TOPICS_ENABLE=true
+      - ALLOW_PLAINTEXT_LISTENER=yes
+      - KAFKA_CFG_LISTENERS=PLAINTEXT://:9092,EXTERNAL://:19092,CONTROLLER://:9093
+      - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:19092
+      - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
+      - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+    ports:
+      - "9092:9092"
+      - "19092:19092"
+
+  kafka-ui:
+    container_name: kafka-ui
+    image: provectuslabs/kafka-ui:latest
+    ports:
+      - 8080:8080
+    environment:
+      DYNAMIC_CONFIG_ENABLED: 'true'
+    volumes:
+      - ./volumes/kafka/config.yml:/etc/kafkaui/dynamic_config.yaml
+
+  collector:
+    build: ./collector
+    container_name: hems-collector
+    environment:
+      - MQTT_BROKER_URL=tcp://vernemq:1883
+      - MQTT_TOPIC=ingestion/telemetry
+      - MQTT_QOS=0
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_TOPIC=raw-events-topic
+      - KAFKA_DLQ_TOPIC=raw-events-dlq
+    depends_on:
+      - vernemq
+      - kafka
+    restart: unless-stopped
