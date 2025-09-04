@@ -8,7 +8,7 @@ COPY . .
 
 RUN --mount=type=cache,target=/go/pkg/mod go mod tidy
 
-RUN --mount=type=cache,target=/root/.cache/go-build     CGO_ENABLED=0 GO111MODULE=on     go build -trimpath -buildvcs=false       -ldflags="-s -w"       -o /out/collector .
+RUN --mount=type=cache,target=/root/.cache/go-build CGO_ENABLED=0 GO111MODULE=on go build -trimpath -buildvcs=false -ldflags="-s -w" -o /out/collector .
 
 FROM gcr.io/distroless/base-debian12:nonroot AS runtime
 
