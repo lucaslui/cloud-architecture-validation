@@ -1,0 +1,12 @@
+{
+    "regionId": "any-region-id",
+    "deviceLocation": "any-device-location",
+    "deviceCategory": "any-device-category",
+    "deviceModel": "any-device-model",
+    "endUserId": "any-end-user-id",
+    "contractType": "any-contract-type",
+    "programs": [
+        "any-program-1",
+        "any-program-2"
+    ]
+}
