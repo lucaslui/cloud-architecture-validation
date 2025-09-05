@@ -72,19 +72,17 @@ services:
     container_name: schema-loader
     restart: "no"
     environment:
-      - SCHEMA_REGISTRY_FS_ROOT=/schemas
+      - SCHEMA_REGISTRY_FS_ROOT=/app
       - REDIS_ADDR=redis:6379
       - SCHEMA_TTL_SECONDS=0
     depends_on:
       redis:
         condition: service_healthy
-    volumes:
-      - ./schema-registry/schemas:/schemas/schemas:ro
     entrypoint: ["/app/schema-loader"]
 
   collector:
     build: ./collector
-    container_name: hems-collector
+    container_name: collector
     restart: unless-stopped
     environment:
       - MQTT_BROKER_URL=tcp://vernemq:1883
@@ -113,7 +111,7 @@ services:
       - REDIS_NAMESPACE=schema
       - REDIS_USE_PUBSUB=true
       - REDIS_INVALIDATE_CHANNEL=schemas:invalidate
-      - CONTEXT_STORE_PATH=/data/device-context.json
+      - CONTEXT_STORE_PATH=/app/device-context.json
     depends_on:
       collector:
         condition: service_started
@@ -123,8 +121,6 @@ services:
         condition: service_healthy
       schema-loader:
         condition: service_completed_successfully
-    volumes:
-      - ./enricher-validator/device-context.json:/data/device-context.json:ro
 
 volumes:
   kafka_data:
