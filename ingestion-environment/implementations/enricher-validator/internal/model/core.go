@@ -1,12 +1,8 @@
 package model
 
-import "time"
-import "encoding/json"
-
-const (
-	AllowedEventTypeTelemetry = "Telemetry"
-	AllowedEventTypeState     = "State"
-	EnvelopeContentTypeJSON   = "application/json"
+import (
+	"encoding/json"
+	"time"
 )
 
 type Envelope struct {
@@ -29,30 +25,24 @@ type Enrichment struct {
 	Programs       []string `json:"programs"`
 }
 
-type Meta struct {
-	EventID       string     `json:"eventId"`
-	ProcessedAt   time.Time  `json:"processedAt"`
-	ReceivedAt    *time.Time `json:"receivedAt,omitempty"`
-	SourceTopic   string     `json:"sourceTopic"`
-	SchemaRef     string     `json:"schemaRef"`
-	ContentType   string     `json:"contentType"`
-	Hash          string     `json:"hash"`
-	CorrelationID string     `json:"correlationId,omitempty"`
+type Metadata struct {
+	EventID       string      `json:"eventId"`
+	ProcessedAt   time.Time   `json:"processedAt"`
+	ReceivedAt    *time.Time  `json:"receivedAt,omitempty"`
+	SchemaRef     string      `json:"schemaRef"`
+	Hash          string      `json:"hash"`
+	CorrelationID string      `json:"correlationId,omitempty"`
 	Enrichment    *Enrichment `json:"enrichment,omitempty"`
 }
 
 type EnrichedEvent struct {
 	Envelope
-	Meta Meta `json:"meta"`
+	Metadata Metadata `json:"metadata"`
 }
 
 type DLQEvent struct {
 	Envelope
-	Error string `json:"error"`
-	Stage string `json:"stage"`
-	Meta  Meta   `json:"meta"`
-}
-
-func IsAllowedEventType(t string) bool {
-	return t == AllowedEventTypeTelemetry || t == AllowedEventTypeState
+	Error    string   `json:"error"`
+	Stage    string   `json:"stage"`
+	Metadata Metadata `json:"metadata"`
 }

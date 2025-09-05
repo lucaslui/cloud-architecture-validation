@@ -1,4 +1,4 @@
-package context
+package data
 
 import (
 	"encoding/json"
@@ -12,7 +12,7 @@ type Store struct {
 	generic *model.Enrichment
 }
 
-func Load(path string) (*Store, error) {
+func LoadContext(path string) (*Store, error) {
 	b, err := os.ReadFile(path)
 	if err != nil {
 		log.Printf("[warn] Context store genérico não encontrado (%s); enriquecimento virá vazio. Err: %v", path, err)
