@@ -1,12 +1,14 @@
 FROM golang:1.25.1 AS build
-WORKDIR /src
+WORKDIR /build
 
 COPY . .
 
-RUN cd src && go build -o /out/schema-loader
+RUN go build -o /out/schema-loader ./cmd/schema-loader
 
 FROM gcr.io/distroless/base-debian12:latest AS runtime
+WORKDIR /app
 
+COPY ./resources/schemas /app/schemas
 COPY --from=build /out/schema-loader /app/schema-loader
 
 ENTRYPOINT ["/app/schema-loader"]
