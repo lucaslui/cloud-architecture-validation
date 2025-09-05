@@ -1,0 +1,44 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "electric_vehicle_state",
+    "title": "Electric Vehicle State",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "pluggedIn": {
+            "type": "string",
+            "enum": [
+                "True",
+                "False"
+            ]
+        },
+        "chargingStatus": {
+            "type": "string",
+            "enum": [
+                "Charging",
+                "NotCharging",
+                "Completed",
+                "Fault"
+            ]
+        },
+        "connectorType": {
+            "type": "string",
+            "enum": [
+                "Type2",
+                "CCS",
+                "CHAdeMO"
+            ]
+        },
+        "lockState": {
+            "type": "string",
+            "enum": [
+                "Locked",
+                "Unlocked"
+            ]
+        }
+    },
+    "required": [
+        "pluggedIn",
+        "chargingStatus"
+    ]
+}

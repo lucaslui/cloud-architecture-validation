@@ -1,0 +1,34 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "res_telemetry",
+    "title": "RES Telemetry",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "generatedPowerW": {
+            "type": "number"
+        },
+        "inverterVoltage": {
+            "type": "number"
+        },
+        "inverterCurrent": {
+            "type": "number"
+        },
+        "frequencyHz": {
+            "type": "number"
+        },
+        "powerFactor": {
+            "type": "number"
+        },
+        "solarIrradianceWm2": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "generatedPowerW",
+        "inverterVoltage",
+        "inverterCurrent",
+        "frequencyHz",
+        "powerFactor"
+    ]
+}

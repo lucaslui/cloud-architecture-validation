@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "environmental_sensor_state",
+    "title": "Environmental Sensor State",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "sensorStatus": {
+            "type": "string",
+            "enum": [
+                "Active",
+                "Inactive",
+                "Faulty"
+            ]
+        },
+        "batteryLevelPct": {
+            "type": "number"
+        },
+        "occupancy": {
+            "type": "string",
+            "enum": [
+                "Occupied",
+                "Vacant"
+            ]
+        }
+    },
+    "required": [
+        "sensorStatus"
+    ]
+}

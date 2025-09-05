@@ -1,0 +1,30 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "smart_meter_telemetry",
+    "title": "Smart Meter Telemetry",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "energyConsumption": {
+            "type": "number"
+        },
+        "energyGeneration": {
+            "type": "number"
+        },
+        "voltage": {
+            "type": "number"
+        },
+        "current": {
+            "type": "number"
+        },
+        "powerFactor": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "energyConsumption",
+        "voltage",
+        "current",
+        "powerFactor"
+    ]
+}

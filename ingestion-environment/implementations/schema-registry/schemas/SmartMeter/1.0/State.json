@@ -1,0 +1,49 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "smart_meter_state",
+    "title": "Smart Meter State",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "connectivityStatus": {
+            "type": "string",
+            "enum": [
+                "Online",
+                "Offline"
+            ]
+        },
+        "breakerStatus": {
+            "type": "string",
+            "enum": [
+                "Closed",
+                "Open"
+            ]
+        },
+        "phaseConfiguration": {
+            "type": "string",
+            "enum": [
+                "SinglePhase",
+                "TwoPhase",
+                "ThreePhase"
+            ]
+        },
+        "meterMode": {
+            "type": "string",
+            "enum": [
+                "NetMetering",
+                "ImportOnly"
+            ]
+        },
+        "tariffType": {
+            "type": "string",
+            "enum": [
+                "Conventional",
+                "TimeOfUse"
+            ]
+        }
+    },
+    "required": [
+        "connectivityStatus",
+        "breakerStatus"
+    ]
+}

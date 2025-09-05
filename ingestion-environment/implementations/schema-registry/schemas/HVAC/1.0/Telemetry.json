@@ -1,0 +1,43 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "hvac_telemetry",
+    "title": "HVAC Telemetry",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "indoorTempC": {
+            "type": "number"
+        },
+        "indoorHumidityPct": {
+            "type": "number"
+        },
+        "outdoorTempC": {
+            "type": "number"
+        },
+        "setpointC": {
+            "type": "number"
+        },
+        "fanRpm": {
+            "type": "number"
+        },
+        "activePowerW": {
+            "type": "number"
+        },
+        "mode": {
+            "type": "string",
+            "enum": [
+                "Cool",
+                "Heat",
+                "Fan",
+                "Auto"
+            ]
+        }
+    },
+    "required": [
+        "indoorTempC",
+        "indoorHumidityPct",
+        "setpointC",
+        "activePowerW",
+        "mode"
+    ]
+}

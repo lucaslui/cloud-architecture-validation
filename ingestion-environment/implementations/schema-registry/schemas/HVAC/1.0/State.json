@@ -1,0 +1,32 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "hvac_state",
+    "title": "HVAC State",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "powerState": {
+            "type": "string",
+            "enum": [
+                "On",
+                "Off"
+            ]
+        },
+        "operatingMode": {
+            "type": "string",
+            "enum": [
+                "Cooling",
+                "Heating",
+                "Ventilating"
+            ]
+        },
+        "setpointTemperature": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "powerState",
+        "operatingMode",
+        "setpointTemperature"
+    ]
+}

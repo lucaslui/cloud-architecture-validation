@@ -1,0 +1,25 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "environmental_sensor_telemetry",
+    "title": "Environmental Sensor Telemetry",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "temperatureC": {
+            "type": "number"
+        },
+        "humidityPct": {
+            "type": "number"
+        },
+        "co2ppm": {
+            "type": "number"
+        },
+        "luminanceLux": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "temperatureC",
+        "humidityPct"
+    ]
+}

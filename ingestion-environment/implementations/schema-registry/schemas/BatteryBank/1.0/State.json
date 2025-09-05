@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "battery_bank_state",
+    "title": "Battery Bank State",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "connectionState": {
+            "type": "string",
+            "enum": [
+                "Connected",
+                "Disconnected"
+            ]
+        },
+        "chargeState": {
+            "type": "string",
+            "enum": [
+                "Charging",
+                "Discharging",
+                "Idle"
+            ]
+        },
+        "health": {
+            "type": "string",
+            "enum": [
+                "Good",
+                "Degraded",
+                "Critical"
+            ]
+        }
+    },
+    "required": [
+        "connectionState",
+        "chargeState"
+    ]
+}

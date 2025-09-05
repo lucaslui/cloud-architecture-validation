@@ -1,0 +1,23 @@
+{
+  "Appliance": [
+    "v1"
+  ],
+  "HVAC": [
+    "v1"
+  ],
+  "SmartMeter": [
+    "v1"
+  ],
+  "RES": [
+    "v1"
+  ],
+  "BatteryBank": [
+    "v1"
+  ],
+  "EnvironmentalSensor": [
+    "v1"
+  ],
+  "ElectricVehicle": [
+    "v1"
+  ]
+}

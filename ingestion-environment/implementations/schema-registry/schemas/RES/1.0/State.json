@@ -1,0 +1,36 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "res_state",
+    "title": "RES State",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "gridConnected": {
+            "type": "string",
+            "enum": [
+                "On",
+                "Off"
+            ]
+        },
+        "inverterStatus": {
+            "type": "string",
+            "enum": [
+                "Active",
+                "Standby",
+                "Fault"
+            ]
+        },
+        "operationMode": {
+            "type": "string",
+            "enum": [
+                "SelfConsumption",
+                "Export",
+                "Idle"
+            ]
+        }
+    },
+    "required": [
+        "gridConnected",
+        "inverterStatus"
+    ]
+}

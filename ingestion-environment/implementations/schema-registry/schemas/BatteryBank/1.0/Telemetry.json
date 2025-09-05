@@ -1,0 +1,31 @@
+{
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "battery_bank_telemetry",
+    "title": "Battery Bank Telemetry",
+    "type": "object",
+    "additionalProperties": false,
+    "properties": {
+        "stateOfChargePct": {
+            "type": "number"
+        },
+        "powerFlowW": {
+            "type": "number"
+        },
+        "voltage": {
+            "type": "number"
+        },
+        "currentA": {
+            "type": "number"
+        },
+        "temperatureC": {
+            "type": "number"
+        }
+    },
+    "required": [
+        "stateOfChargePct",
+        "powerFlowW",
+        "voltage",
+        "currentA",
+        "temperatureC"
+    ]
+}
