@@ -1,4 +1,4 @@
-package main
+package handler
 
 import (
 	"context"
@@ -7,21 +7,25 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 	"github.com/segmentio/kafka-go"
+
+	"github.com/lucaslui/hems/collector/internal/config"
+	"github.com/lucaslui/hems/collector/internal/validate"
+	kafkaSv"github.com/lucaslui/hems/collector/internal/kafka"
 )
 
-func handleMessage(ctx context.Context, cfg *Config, prod *KafkaProducer, msg mqtt.Message) {
+func HandleMessage(ctx context.Context, cfg *config.Config, prod *kafkaSv.KafkaProducer, msg mqtt.Message) {
 	receivedAt := time.Now().UTC()
 	payload := msg.Payload()
 
 	// Log do recebimento no MQTT (amostra do payload)
 	cfg.Logger.Printf(
 		"mqtt rx: topic=%s qos=%d mid=%d retained=%v bytes=%d payload=%s",
-		msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(payload), truncate(payload, 512),
+		msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(payload), validate.Truncate(payload, 512),
 	)
 
-	m, err := validatePayload(payload)
+	m, err := validate.ValidatePayload(payload)
 	if err != nil {
-		cfg.Logger.Printf("invalid payload — sending to DLQ: %v | message: %s", err, truncate(payload, 512))
+		cfg.Logger.Printf("invalid payload — sending to DLQ: %v | message: %s", err, validate.Truncate(payload, 512))
 		// Envelope no DLQ
 		dlq := map[string]any{
 			"error":      err.Error(),
@@ -31,7 +35,7 @@ func handleMessage(ctx context.Context, cfg *Config, prod *KafkaProducer, msg mq
 		}
 		buf, _ := json.Marshal(dlq)
 		key := []byte("invalid")
-		if err := prod.dlq.WriteMessages(ctx, kafka.Message{Key: key, Value: buf, Time: receivedAt}); err != nil {
+		if err := prod.SendDLQ(ctx, key, buf); err != nil {
 			cfg.Logger.Printf("kafka write error (dlq): %v", err)
 		} else {
 			cfg.Logger.Printf("dlq OK: topic=%s bytes=%d", cfg.KafkaDLQTopic, len(buf))
@@ -46,7 +50,10 @@ func handleMessage(ctx context.Context, cfg *Config, prod *KafkaProducer, msg mq
 	} else {
 		key = []byte("unknown-device")
 	}
-	if err := prod.main.WriteMessages(ctx, kafka.Message{Key: key, Value: payload, Time: receivedAt}); err != nil {
+	if err := prod.Send(ctx, key, payload, kafka.Header{
+		Key:   "receivedAt",
+		Value: []byte(receivedAt.Format(time.RFC3339Nano)),
+	}); err != nil {
 		cfg.Logger.Printf("kafka write error (main): %v", err)
 		return
 	}

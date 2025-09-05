@@ -1,4 +1,4 @@
-package main
+package kafka
 
 import (
 	"context"
@@ -6,10 +6,12 @@ import (
 	"strconv"
 
 	"github.com/segmentio/kafka-go"
+
+	"github.com/lucaslui/hems/collector/internal/config"
 )
 
 // Cria tópicos se ainda não existirem
-func ensureKafkaTopics(ctx context.Context, cfg *Config) error {
+func EnsureKafkaTopics(ctx context.Context, cfg *config.Config) error {
 	bootstrap := cfg.KafkaBrokers[0]
 	cfg.Logger.Printf("kafka: ensuring topics on bootstrap %s", bootstrap)
 

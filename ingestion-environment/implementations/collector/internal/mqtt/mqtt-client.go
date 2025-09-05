@@ -1,24 +1,26 @@
-package main
+package mqtt
 
 import (
 	"context"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+
+	"github.com/lucaslui/hems/collector/internal/config"
+	"github.com/lucaslui/hems/collector/internal/handler"
+	"github.com/lucaslui/hems/collector/internal/kafka"
 )
 
-// Prepara cliente MQTT com callbacks e opções
-func buildMQTTClient(cfg *Config, producer *KafkaProducer) mqtt.Client {
+func BuildMQTTClient(cfg *config.Config, producer *kafka.KafkaProducer) mqtt.Client {
 	h := func(_ mqtt.Client, msg mqtt.Message) {
-		// Contexto simples para o handler; se preferir pode propagar o ctx da main
-		handleMessage(context.Background(), cfg, producer, msg)
+		handler.HandleMessage(context.Background(), cfg, producer, msg)
 	}
 
 	opts := mqtt.NewClientOptions().
 		AddBroker(cfg.MQTTBrokerURL).
 		SetClientID(cfg.MQTTClientID).
-		SetOrderMatters(false). // mais concorrência no handler
-		SetCleanSession(false). // mantém sessão para re-subscribe automático
+		SetOrderMatters(false).
+		SetCleanSession(false).
 		SetKeepAlive(30 * time.Second).
 		SetPingTimeout(10 * time.Second).
 		SetAutoReconnect(true).
@@ -32,7 +34,6 @@ func buildMQTTClient(cfg *Config, producer *KafkaProducer) mqtt.Client {
 		opts.SetPassword(cfg.MQTTPassword)
 	}
 
-	// Ao conectar (ou reconectar), refaz a inscrição
 	opts.OnConnect = func(c mqtt.Client) {
 		cfg.Logger.Printf("connected to VerneMQ: %s", cfg.MQTTBrokerURL)
 		if token := c.Subscribe(cfg.MQTTTopic, cfg.MQTTQoS, h); token.Wait() && token.Error() != nil {
@@ -41,13 +42,13 @@ func buildMQTTClient(cfg *Config, producer *KafkaProducer) mqtt.Client {
 			cfg.Logger.Printf("subscribed to topic: %s (QoS %d)", cfg.MQTTTopic, cfg.MQTTQoS)
 		}
 	}
+	
 	opts.OnConnectionLost = func(c mqtt.Client, err error) { cfg.Logger.Printf("mqtt connection lost: %v", err) }
 
 	return mqtt.NewClient(opts)
 }
 
-// Conecta com backoff exponencial até sucesso ou cancel
-func connectWithBackoff(ctx context.Context, cfg *Config, client mqtt.Client, start, max time.Duration) {
+func ConnectWithBackoff(ctx context.Context, cfg *config.Config, client mqtt.Client, start, max time.Duration) {
 	backoff := start
 	for {
 		if token := client.Connect(); token.Wait() && token.Error() != nil {

@@ -1,4 +1,4 @@
-package main
+package config
 
 import (
 	"errors"
@@ -8,7 +8,6 @@ import (
 	"strings"
 )
 
-// Config via variáveis de ambiente
 type Config struct {
 	MQTTBrokerURL string
 	MQTTClientID  string
@@ -43,7 +42,7 @@ func getenvInt(key string, fallback int) int {
 	return fallback
 }
 
-func loadConfig() (*Config, error) {
+func LoadConfig() (*Config, error) {
 	brokers := getenv("KAFKA_BROKERS", "localhost:9092")
 
 	// Lê QoS (0..2) e retorna byte

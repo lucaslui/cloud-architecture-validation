@@ -1,4 +1,4 @@
-package main
+package validate
 
 import (
 	"encoding/json"
@@ -6,11 +6,9 @@ import (
 	"strings"
 )
 
-// Campos obrigatórios do JSON
 var requiredFields = []string{"deviceId", "deviceType", "eventType", "schemaVersion", "payload"}
 
-// Valida presença (e strings não-vazias para campos de texto)
-func validatePayload(raw []byte) (map[string]any, error) {
+func ValidatePayload(raw []byte) (map[string]any, error) {
 	var m map[string]any
 	if err := json.Unmarshal(raw, &m); err != nil {
 		return nil, err
@@ -27,7 +25,7 @@ func validatePayload(raw []byte) (map[string]any, error) {
 	return m, nil
 }
 
-func truncate(b []byte, n int) string {
+func Truncate(b []byte, n int) string {
 	if len(b) <= n {
 		return string(b)
 	}
