@@ -10,12 +10,5 @@
         "phaseConfiguration": "${__chooseRandom(SinglePhase,TwoPhase,ThreePhase)}",
         "meterMode": "${__chooseRandom(NetMetering,ImportOnly)}",
         "tariffType": "${__chooseRandom(Conventional,TimeOfUse)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "MainPanel",
-        "deviceCategory": "SmartMeter",
-        "deviceModel": "ABB-${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

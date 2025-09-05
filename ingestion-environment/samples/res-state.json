@@ -8,12 +8,5 @@
         "gridConnected": "${__chooseRandom(On,Off)}",
         "inverterStatus": "${__chooseRandom(Active,Standby,Fault)}",
         "operationMode": "${__chooseRandom(SelfConsumption,Export,Idle)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "Roof",
-        "deviceCategory": "RES",
-        "deviceModel": "InverterX${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

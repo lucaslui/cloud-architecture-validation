@@ -10,12 +10,5 @@
         "voltage": "${__Random(48,56)}",
         "currentA": "${__chooseRandom(-80|-40|0|20|50)}",
         "temperatureC": "${__Random(15,45)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "UtilityRoom",
-        "deviceCategory": "Battery",
-        "deviceModel": "ESS-${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

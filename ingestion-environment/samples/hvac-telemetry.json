@@ -12,12 +12,5 @@
         "fanRpm": "${__Random(400,1400)}",
         "activePowerW": "${__Random(200,2500)}",
         "mode": "${__chooseRandom(Cool|Heat|Fan|Auto)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "LivingRoom",
-        "deviceCategory": "HVAC",
-        "deviceModel": "DaikinX${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

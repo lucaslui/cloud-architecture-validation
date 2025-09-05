@@ -10,12 +10,5 @@
         "voltage": "${__Random(210,230)}",
         "current": "${__Random(1,20)}",
         "powerFactor": "${__Random(70,100)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "MainPanel",
-        "deviceCategory": "SmartMeter",
-        "deviceModel": "ABB-${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

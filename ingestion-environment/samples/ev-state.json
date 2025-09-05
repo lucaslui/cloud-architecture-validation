@@ -9,12 +9,5 @@
         "chargingStatus": "${__chooseRandom(Charging,NotCharging,Completed,Fault)}",
         "connectorType": "${__chooseRandom(Type2,CCS,CHAdeMO)}",
         "lockState": "${__chooseRandom(Locked,Unlocked)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "Garage",
-        "deviceCategory": "EV",
-        "deviceModel": "TeslaModel${__Random(1,3)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

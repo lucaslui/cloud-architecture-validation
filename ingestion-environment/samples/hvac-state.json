@@ -8,12 +8,5 @@
         "powerState": "${__chooseRandom(On,Off)}",
         "operatingMode": "${__chooseRandom(Cooling,Heating,Ventilating)}",
         "setpointTemperature": "${__Random(18,26)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "LivingRoom",
-        "deviceCategory": "HVAC",
-        "deviceModel": "DaikinX${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }

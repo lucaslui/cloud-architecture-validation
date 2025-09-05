@@ -12,12 +12,5 @@
         "apparentPowerVA": "${__Random(0,350)}",
         "powerFactorPct": "${__Random(70,100)}",
         "frequencyHz": "${__Random(59,61)}"
-    },
-    "metadata": {
-        "regionId": "SP-Campinas-${__Random(1,5)}",
-        "deviceLocation": "Kitchen",
-        "deviceCategory": "Refrigerator",
-        "deviceModel": "RF-${__Random(100,999)}",
-        "endUserId": "user-${__Random(1,9999)}"
     }
 }
