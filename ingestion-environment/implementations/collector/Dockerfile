@@ -1,20 +1,11 @@
 FROM golang:1.25.1 AS build
 WORKDIR /build
 
-COPY go.mod go.sum ./
-RUN --mount=type=cache,target=/go/pkg/mod go mod download
-
 COPY . .
 
-RUN --mount=type=cache,target=/go/pkg/mod go mod tidy
+RUN go build -o /out/collector ./cmd/collector
 
-RUN --mount=type=cache,target=/root/.cache/go-build \
-    CGO_ENABLED=0 GO111MODULE=on \
-    go build -trimpath -buildvcs=false \
-    -ldflags="-s -w" \
-    -o /out/collector ./cmd/collector
-
-FROM gcr.io/distroless/base-debian12:nonroot AS runtime
+FROM gcr.io/distroless/base-debian12:latest AS runtime
 WORKDIR /app
 
 ENV MQTT_BROKER_URL=tcp://vernemq:1883 \
@@ -24,7 +15,6 @@ ENV MQTT_BROKER_URL=tcp://vernemq:1883 \
     KAFKA_TOPIC=raw-events-topic \
     KAFKA_DLQ_TOPIC=raw-events-dlq
 
-COPY --from=build /out/collector /collector
+COPY --from=build /out/collector /app/collector
 
-USER nonroot:nonroot
-ENTRYPOINT ["/collector"]
+ENTRYPOINT ["/app/collector"]
