@@ -6,10 +6,15 @@ services:
       - DOCKER_VERNEMQ_ACCEPT_EULA=yes
       - DOCKER_VERNEMQ_ALLOW_ANONYMOUS=on
       - DOCKER_VERNEMQ_LISTENER__TCP__DEFAULT=0.0.0.0:1883
-      - DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST=127.0.0.1:1882
       - DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL=info
     ports:
       - "1883:1883"
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/1883'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
 
   kafka:
     image: bitnami/kafka:3.7
@@ -25,10 +30,21 @@ services:
       - KAFKA_CFG_ADVERTISED_LISTENERS=PLAINTEXT://kafka:9092,EXTERNAL://localhost:19092
       - KAFKA_CFG_LISTENER_SECURITY_PROTOCOL_MAP=PLAINTEXT:PLAINTEXT,EXTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT
       - KAFKA_CFG_INTER_BROKER_LISTENER_NAME=PLAINTEXT
+      - KAFKA_CFG_OFFSETS_TOPIC_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_REPLICATION_FACTOR=1
+      - KAFKA_CFG_TRANSACTION_STATE_LOG_MIN_ISR=1
     ports:
       - "9092:9092"
       - "19092:19092"
-
+    volumes:
+      - kafka_data:/bitnami/kafka
+    healthcheck:
+      test: ["CMD", "bash", "-lc", "/opt/bitnami/kafka/bin/kafka-topics.sh --bootstrap-server localhost:9092 --list >/dev/null 2>&1"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+      
   kafka-ui:
     container_name: kafka-ui
     image: provectuslabs/kafka-ui:latest
@@ -39,9 +55,37 @@ services:
     volumes:
       - ./volumes/kafka/config.yml:/etc/kafkaui/dynamic_config.yaml
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis-hems
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
+    ports:
+      - "6380:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 2s
+      retries: 20
+      
+  schema-loader:
+    build: ./schema-registry
+    container_name: schema-loader
+    restart: "no"
+    environment:
+      - SCHEMA_REGISTRY_FS_ROOT=/schemas
+      - REDIS_ADDR=redis:6379
+      - SCHEMA_TTL_SECONDS=0
+    depends_on:
+      redis:
+        condition: service_healthy
+    volumes:
+      - ./schema-registry/schemas:/schemas/schemas:ro
+    entrypoint: ["/app/schema-loader"]
+
   collector:
     build: ./collector
     container_name: hems-collector
+    restart: unless-stopped
     environment:
       - MQTT_BROKER_URL=tcp://vernemq:1883
       - MQTT_TOPIC=ingestion/telemetry
@@ -50,6 +94,42 @@ services:
       - KAFKA_TOPIC=raw-events-topic
       - KAFKA_DLQ_TOPIC=raw-events-dlq
     depends_on:
-      - vernemq
-      - kafka
+      vernemq:
+        condition: service_healthy
+      kafka:
+        condition: service_healthy
+
+  enricher_validator:
+    build: ./enricher-validator
+    container_name: enricher-validator
     restart: unless-stopped
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - INPUT_TOPIC=raw-events-topic
+      - OUTPUT_TOPIC=enriched-events-topic
+      - DLQ_TOPIC=validation-dlq-topic
+      - REDIS_ADDR=redis:6379
+      - REDIS_DB=0
+      - REDIS_NAMESPACE=schema
+      - REDIS_USE_PUBSUB=true
+      - REDIS_INVALIDATE_CHANNEL=schemas:invalidate
+      - CONTEXT_STORE_PATH=/data/device-context.json
+    depends_on:
+      collector:
+        condition: service_started
+      kafka:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      schema-loader:
+        condition: service_completed_successfully
+    volumes:
+      - ./enricher-validator/device-context.json:/data/device-context.json:ro
+
+volumes:
+  kafka_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./volumes/kafka/data
+      o: bind
