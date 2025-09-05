@@ -1,10 +1,10 @@
 FROM golang:1.22.4 AS build
-WORKDIR /app
+WORKDIR /build
 
-COPY go.mod go.sum* ./
+COPY go.mod go.sum ./
 RUN --mount=type=cache,target=/go/pkg/mod go mod download
 
-COPY src ./src
+COPY . .
 
 RUN --mount=type=cache,target=/go/pkg/mod go mod tidy
 
@@ -12,9 +12,10 @@ RUN --mount=type=cache,target=/root/.cache/go-build \
     CGO_ENABLED=0 GO111MODULE=on \
     go build -trimpath -buildvcs=false \
     -ldflags="-s -w" \
-    -o /out/collector ./src
+    -o /out/collector ./cmd/collector
 
 FROM gcr.io/distroless/base-debian12:nonroot AS runtime
+WORKDIR /app
 
 ENV MQTT_BROKER_URL=tcp://vernemq:1883 \
     MQTT_TOPIC=ingestion/telemetry \
