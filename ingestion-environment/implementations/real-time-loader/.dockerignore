@@ -1,0 +1,19 @@
+.git
+.github
+.idea
+.vscode
+.DS_Store
+*.local
+*.log
+node_modules
+build/
+dist/
+tmp/
+*.iml
+**/*.swp
+**/*.swo
+**/*.tmp
+# Go build artifacts
+*.out
+*.test
+bin/
