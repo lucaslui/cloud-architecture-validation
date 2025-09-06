@@ -51,9 +51,12 @@ services:
     ports:
       - 8080:8080
     environment:
-      DYNAMIC_CONFIG_ENABLED: 'true'
-    volumes:
-      - ./volumes/kafka/config.yml:/etc/kafkaui/dynamic_config.yaml
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+      DYNAMIC_CONFIG_ENABLED: 'false'
+    depends_on:
+      kafka:
+        condition: service_healthy
 
   redis:
     image: redis:7-alpine
@@ -66,7 +69,29 @@ services:
       interval: 3s
       timeout: 2s
       retries: 20
-      
+  
+  influxdb:
+    image: influxdb:2.7
+    container_name: influxdb
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=admin
+      - DOCKER_INFLUXDB_INIT_PASSWORD=admin123
+      - DOCKER_INFLUXDB_INIT_ORG=hems
+      - DOCKER_INFLUXDB_INIT_BUCKET=hems_timeseries
+      # Token de desenvolvimento (use um segredo de verdade em prod)
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=dev-token
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: ["CMD", "influx", "ping", "--host", "http://localhost:8086"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 30s
+
   schema-loader:
     build: ./schema-registry
     container_name: schema-loader
@@ -90,7 +115,7 @@ services:
       - MQTT_QOS=0
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_TOPIC=raw-events-topic
-      - KAFKA_DLQ_TOPIC=raw-events-dlq
+      - KAFKA_KAFKA_DLQ_TOPIC=raw-events-dlq
     depends_on:
       vernemq:
         condition: service_healthy
@@ -103,9 +128,9 @@ services:
     restart: unless-stopped
     environment:
       - KAFKA_BROKERS=kafka:9092
-      - INPUT_TOPIC=raw-events-topic
-      - OUTPUT_TOPIC=enriched-events-topic
-      - DLQ_TOPIC=validation-dlq-topic
+      - KAFKA_INPUT_TOPIC=raw-events-topic
+      - KAFKA_OUTPUT_TOPIC=enriched-events-topic
+      - KAFKA_DLQ_TOPIC=validation-dlq-topic
       - REDIS_ADDR=redis:6379
       - REDIS_DB=0
       - REDIS_NAMESPACE=schema
@@ -122,10 +147,36 @@ services:
       schema-loader:
         condition: service_completed_successfully
 
+  real-time-loader:
+    build: ./real-time-loader
+    container_name: real-time-loader
+    restart: unless-stopped
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_GROUP_ID=real-time-loader
+      - KAFKA_INPUT_TOPIC=enriched-events-topic
+      - INFLUX_URL=http://influxdb:8086
+      - INFLUX_TOKEN=dev-token
+      - INFLUX_ORG=hems
+      - INFLUX_BUCKET=hems_timeseries
+      # Opcional: nome da medição
+      - INFLUX_MEASUREMENT=smartmeter
+    depends_on:
+      kafka:
+        condition: service_healthy
+      influxdb:
+        condition: service_healthy
+
 volumes:
   kafka_data:
     driver: local
     driver_opts:
       type: none
       device: ./volumes/kafka/data
+      o: bind
+  influxdb_data:
+    driver: local
+    driver_opts:
+      type: none
+      device: ./volumes/influxdb_data
       o: bind
