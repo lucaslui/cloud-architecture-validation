@@ -39,7 +39,7 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters">
         <collectionProp name="Arguments.arguments">
           <elementProp name="NumberHomes" elementType="Argument">
             <stringProp name="Argument.name">NumberHomes</stringProp>
@@ -48,7 +48,7 @@
           </elementProp>
           <elementProp name="NumberMessages" elementType="Argument">
             <stringProp name="Argument.name">NumberMessages</stringProp>
-            <stringProp name="Argument.value">10</stringProp>
+            <stringProp name="Argument.value">1000</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="PayloadSize" elementType="Argument">
@@ -64,7 +64,7 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Infrastructure Parameters" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Infrastructure Parameters">
         <collectionProp name="Arguments.arguments">
           <elementProp name="RampUpTimeSec" elementType="Argument">
             <stringProp name="Argument.name">RampUpTimeSec</stringProp>
@@ -157,7 +157,7 @@
           </ConstantTimer>
           <hashTree/>
         </hashTree>
-        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="true">
+        <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller">
           <stringProp name="LoopController.loops">${NumberMessages}</stringProp>
         </LoopController>
         <hashTree>
@@ -274,7 +274,7 @@ vars.put(&apos;BODY&apos;, finalJson)
           <hashTree/>
         </hashTree>
       </hashTree>
-      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree" enabled="true">
+      <ResultCollector guiclass="ViewResultsFullVisualizer" testclass="ResultCollector" testname="View Results Tree">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
@@ -311,7 +311,7 @@ vars.put(&apos;BODY&apos;, finalJson)
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
