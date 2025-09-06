@@ -111,11 +111,15 @@ services:
     restart: unless-stopped
     environment:
       - MQTT_BROKER_URL=tcp://vernemq:1883
+      - MQTT_CLIENT_ID=hems-collector
       - MQTT_TOPIC=ingestion/telemetry
       - MQTT_QOS=0
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_TOPIC=raw-events-topic
-      - KAFKA_KAFKA_DLQ_TOPIC=raw-events-dlq
+      - KAFKA_DLQ_TOPIC=raw-events-dlq
+      - KAFKA_TOPIC_PARTITIONS=1
+      - KAFKA_DLQ_PARTITIONS=1
+      - KAFKA_REPLICATION_FACTOR=1
     depends_on:
       vernemq:
         condition: service_healthy
