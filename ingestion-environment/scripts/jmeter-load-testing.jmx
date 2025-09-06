@@ -76,6 +76,11 @@
             <stringProp name="Argument.value">/home/lucasmotta/Desktop/cloud-architecture-validation/ingestion-environment/samples</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
+          <elementProp name="PREPROCESSOR_DIR" elementType="Argument">
+            <stringProp name="Argument.name">PREPROCESSOR_DIR</stringProp>
+            <stringProp name="Argument.value">/home/lucasmotta/Desktop/cloud-architecture-validation/ingestion-environment/scripts</stringProp>
+            <stringProp name="Argument.metadata">=</stringProp>
+          </elementProp>
         </collectionProp>
       </Arguments>
       <hashTree/>
@@ -95,7 +100,7 @@
           <longProp name="timeoutInMs">10000</longProp>
         </SyncTimer>
         <hashTree/>
-        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter" enabled="true">
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter">
           <stringProp name="CounterConfig.start">1</stringProp>
           <stringProp name="CounterConfig.end"></stringProp>
           <stringProp name="CounterConfig.incr">1</stringProp>
@@ -163,97 +168,9 @@
         <hashTree>
           <JSR223PreProcessor guiclass="TestBeanGUI" testclass="JSR223PreProcessor" testname="JSR223 PreProcessor">
             <stringProp name="cacheKey">true</stringProp>
-            <stringProp name="filename"></stringProp>
+            <stringProp name="filename">${PREPROCESSOR_DIR}/jmeter-preprocessor-script.groovy</stringProp>
             <stringProp name="parameters"></stringProp>
-            <stringProp name="script">import java.util.concurrent.ThreadLocalRandom
-import org.apache.commons.io.FileUtils
-import org.apache.jmeter.engine.util.CompoundVariable
-import groovy.json.JsonSlurper
-import groovy.json.JsonOutput
-
-def base = vars.get(&apos;SAMPLES_DIR&apos;)
-if (!base) throw new IllegalStateException(&apos;SAMPLES_DIR não definido (use -JSAMPLES_DIR=/abs/path/para/samples)&apos;)
-
-// Peso (se quiser variar por tipo, mude por arquivo abaixo)
-int wTel = (props.get(&apos;TELEMETRY_WEIGHT&apos;) ?: &apos;100&apos;) as int
-
-def entries = [
-  [path:&apos;appliances/dish-washer-telemetry.json&apos;,  deviceType:&apos;Appliance&apos;, category:&apos;Dishwasher&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;appliances/refrigerator-telemetry.json&apos;, deviceType:&apos;Appliance&apos;, category:&apos;Refrigerator&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;appliances/television-telemetry.json&apos;,   deviceType:&apos;Appliance&apos;, category:&apos;Television&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;appliances/washing-machine-telemetry.json&apos;, deviceType:&apos;Appliance&apos;, category:&apos;WashingMachine&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;battery-bank-telemetry.json&apos;, deviceType:&apos;BatteryBank&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;env-sensor-telemetry.json&apos;, deviceType:&apos;EnvironmentalSensor&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;ev-telemetry.json&apos;, deviceType:&apos;ElectricVehicle&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;hvac-telemetry.json&apos;, deviceType:&apos;HVAC&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;res-telemetry.json&apos;, deviceType:&apos;RES&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-  [path:&apos;smart-meter-telemetry.json&apos;, deviceType:&apos;SmartMeter&apos;, eventType:&apos;Telemetry&apos;, weight:wTel],
-]
-if (entries.isEmpty()) throw new IllegalStateException(&apos;Nenhum payload Telemetry encontrado.&apos;)
-
-// ===== Escolha ponderada =====
-int total = entries.sum{ it.weight as int } as int
-int r = ThreadLocalRandom.current().nextInt(Math.max(total,1))
-def pick = null; int acc = 0
-for (e in entries){ acc += (e.weight as int); if (r &lt; acc){ pick = e; break } }
-
-// ===== Lê arquivo =====
-def file = new File(base, pick.path)
-if (!file.exists()) throw new FileNotFoundException(&quot;Arquivo não encontrado: &quot; + file)
-def raw = FileUtils.readFileToString(file, &apos;UTF-8&apos;)
-
-// ===== Suporte offline a __chooseRandom(...), aceita &apos;,&apos; ou &apos;|&apos;, ignora var no fim =====
-raw = raw.replaceAll(/\$\{__chooseRandom\(([^}]*)\)\}/) { full, inside -&gt;
-  def parts = inside.split(/[|,]/).collect{ it.trim() }.findAll{ it }
-  if (parts.size() &gt; 1 &amp;&amp; parts[-1] ==~ /^[A-Za-z_][A-Za-z0-9_]*$/) { parts = parts[0..-2] } // drop var name
-  def opts = parts.collect{ it.replaceAll(/^[&apos;&quot;]|[&apos;&quot;]$/, &apos;&apos;) }
-  if (opts.isEmpty()) return full
-  opts[ThreadLocalRandom.current().nextInt(opts.size())]
-}
-
-// ===== Avalia demais funções do JMeter (__Random, __time, etc.) =====
-def evaluated = new CompoundVariable(raw).execute()
-
-// ===== (Opcional, recomendado) deviceId determinístico por casa &lt;PREFIX&gt;-HOME-&lt;N&gt; =====
-int houseNo = ctx.getThreadNum() + 1
-String HOUSE_NO = String.valueOf(houseNo)
-vars.put(&apos;HOUSE_NO&apos;, HOUSE_NO)
-
-def prefixByType = [
-  &apos;SmartMeter&apos;:&apos;SM&apos;, &apos;ElectricVehicle&apos;:&apos;EV&apos;, &apos;HVAC&apos;:&apos;AC&apos;,
-  &apos;EnvironmentalSensor&apos;:&apos;ES&apos;, &apos;BatteryBank&apos;:&apos;BAT&apos;, &apos;RES&apos;:&apos;RES&apos;,
-  &apos;Appliance&apos;: null
-]
-def prefixByCategory = [
-  &apos;Dishwasher&apos;:&apos;DW&apos;, &apos;Refrigerator&apos;:&apos;RF&apos;, &apos;Television&apos;:&apos;TV&apos;, &apos;WashingMachine&apos;:&apos;WM&apos;
-]
-def prefix = (pick.deviceType == &apos;Appliance&apos;) ? prefixByCategory[pick.category] : prefixByType[pick.deviceType]
-if (!prefix) prefix = pick.deviceType
-
-def enforcedDeviceId = &quot;${prefix}-HOME-${HOUSE_NO}&quot;
-
-// sobrescreve o deviceId do JSON (comente as 2 linhas abaixo se NÃO quiser forçar)
-evaluated = evaluated.replaceFirst(/&quot;deviceId&quot;\s*:\s*&quot;(?:\\.|[^&quot;]*)&quot;/, &quot;\&quot;deviceId\&quot;:\&quot;${enforcedDeviceId}\&quot;&quot;)
-
-// ===== Converter números do payload para número de verdade (apenas Telemetry) =====
-def parsed = new JsonSlurper().parseText(evaluated)
-if ((parsed instanceof Map) &amp;&amp; parsed.eventType == &apos;Telemetry&apos; &amp;&amp; (parsed.payload instanceof Map)) {
-  parsed.payload = parsed.payload.collectEntries { k, v -&gt;
-    if ((v instanceof String) &amp;&amp; (v ==~ /-?\d+(\.\d+)?/)) {
-      [(k): new BigDecimal(v)]
-    } else {
-      [(k): v]
-    }
-  }
-}
-def finalJson = JsonOutput.toJson(parsed) // minificado
-
-// entrega para o sampler (Message/Payload = ${BODY})
-vars.put(&apos;BODY&apos;, finalJson)
-
-// debug opcional:
-// log.info(&quot;PUB ${enforcedDeviceId} -&gt; ingestion/telemetry -&gt; ${pick.path}&quot;)
-</stringProp>
+            <stringProp name="script"></stringProp>
             <stringProp name="scriptLanguage">groovy</stringProp>
           </JSR223PreProcessor>
           <hashTree/>
