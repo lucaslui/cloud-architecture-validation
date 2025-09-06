@@ -40,17 +40,17 @@ func (p *KafkaProducer) Close(ctx context.Context) {
 }
 
 func (p *KafkaProducer) Send(ctx context.Context, key, value []byte, headers ...kafka.Header) error {
-    return p.main.WriteMessages(ctx, kafka.Message{
-        Key:     key,
-        Value:   value,
-        Headers: headers,
-    })
+	return p.main.WriteMessages(ctx, kafka.Message{
+		Key:     key,
+		Value:   value,
+		Headers: headers,
+	})
 }
 
 func (p *KafkaProducer) SendDLQ(ctx context.Context, key, value []byte, headers ...kafka.Header) error {
-    return p.dlq.WriteMessages(ctx, kafka.Message{
-        Key:     key,
-        Value:   value,
-        Headers: headers,
-    })
+	return p.dlq.WriteMessages(ctx, kafka.Message{
+		Key:     key,
+		Value:   value,
+		Headers: headers,
+	})
 }

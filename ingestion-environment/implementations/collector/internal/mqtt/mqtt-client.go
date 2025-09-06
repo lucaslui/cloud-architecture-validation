@@ -42,7 +42,6 @@ func BuildMQTTClient(cfg *config.Config, producer *kafka.KafkaProducer) mqtt.Cli
 			cfg.Logger.Printf("subscribed to topic: %s (QoS %d)", cfg.MQTTTopic, cfg.MQTTQoS)
 		}
 	}
-	
 	opts.OnConnectionLost = func(c mqtt.Client, err error) { cfg.Logger.Printf("mqtt connection lost: %v", err) }
 
 	return mqtt.NewClient(opts)

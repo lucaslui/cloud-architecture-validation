@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lucaslui/hems/collector/internal/kafka"
-	"github.com/lucaslui/hems/collector/internal/mqtt"
-	"github.com/lucaslui/hems/collector/internal/config"
+	cfgpkg "github.com/lucaslui/hems/collector/internal/config"
+	kafkapkg "github.com/lucaslui/hems/collector/internal/kafka"
+	mqttpkg "github.com/lucaslui/hems/collector/internal/mqtt"
 )
 
 func main() {
-	cfg, err := config.LoadConfig()
+	cfg, err := cfgpkg.LoadConfig()
 	if err != nil {
 		log.Fatalf("config error: %v", err)
 	}
@@ -31,16 +31,17 @@ func main() {
 		cancel()
 	}()
 
-	if err := kafka.EnsureKafkaTopics(ctx, cfg); err != nil {
+	// Garante tópicos Kafka antes de criar produtores
+	if err := kafkapkg.EnsureKafkaTopics(ctx, cfg); err != nil {
 		cfg.Logger.Fatalf("kafka ensure topics error: %v", err)
 	}
 
-	producer := kafka.NewKafkaProducer(cfg)
+	producer := kafkapkg.NewKafkaProducer(cfg)
 	defer producer.Close(ctx)
 
 	// Cliente MQTT + reconexão com backoff (bloqueia até cancel)
-	client := mqtt.BuildMQTTClient(cfg, producer)
-	mqtt.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
+	client := mqttpkg.BuildMQTTClient(cfg, producer)
+	mqttpkg.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
 
 	<-ctx.Done()
 	cfg.Logger.Println("collector stopped")

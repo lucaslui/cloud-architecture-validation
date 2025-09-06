@@ -6,36 +6,35 @@ import (
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
+	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 
 	"github.com/lucaslui/hems/collector/internal/config"
+	kafkaSv "github.com/lucaslui/hems/collector/internal/kafka"
+	"github.com/lucaslui/hems/collector/internal/model"
 	"github.com/lucaslui/hems/collector/internal/validate"
-	kafkaSv"github.com/lucaslui/hems/collector/internal/kafka"
 )
 
 func HandleMessage(ctx context.Context, cfg *config.Config, prod *kafkaSv.KafkaProducer, msg mqtt.Message) {
-	receivedAt := time.Now().UTC()
-	payload := msg.Payload()
+	collectedAt := time.Now().UTC()
+	raw := msg.Payload()
 
-	// Log do recebimento no MQTT (amostra do payload)
 	cfg.Logger.Printf(
 		"mqtt rx: topic=%s qos=%d mid=%d retained=%v bytes=%d payload=%s",
-		msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(payload), validate.Truncate(payload, 512),
+		msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(raw), validate.Truncate(raw, 512),
 	)
 
-	m, err := validate.ValidatePayload(payload)
+	env, err := validate.ValidatePayload(raw)
 	if err != nil {
-		cfg.Logger.Printf("invalid payload — sending to DLQ: %v | message: %s", err, validate.Truncate(payload, 512))
-		// Envelope no DLQ
+		cfg.Logger.Printf("invalid payload — sending to DLQ: %v | message: %s", err, validate.Truncate(raw, 512))
 		dlq := map[string]any{
 			"error":      err.Error(),
-			"original":   json.RawMessage(payload),
+			"original":   json.RawMessage(raw),
 			"topic":      msg.Topic(),
-			"receivedAt": receivedAt.Format(time.RFC3339Nano),
+			"receivedAt": collectedAt.Format(time.RFC3339Nano),
 		}
 		buf, _ := json.Marshal(dlq)
-		key := []byte("invalid")
-		if err := prod.SendDLQ(ctx, key, buf); err != nil {
+		if err := prod.SendDLQ(ctx, []byte("invalid"), buf); err != nil {
 			cfg.Logger.Printf("kafka write error (dlq): %v", err)
 		} else {
 			cfg.Logger.Printf("dlq OK: topic=%s bytes=%d", cfg.KafkaDLQTopic, len(buf))
@@ -43,19 +42,32 @@ func HandleMessage(ctx context.Context, cfg *config.Config, prod *kafkaSv.KafkaP
 		return
 	}
 
-	// Mensagem válida → encaminha JSON cru para Kafka com key=deviceId (se string)
-	var key []byte
-	if v, ok := m["deviceId"].(string); ok && v != "" {
-		key = []byte(v)
-	} else {
+	// Enriquecimento com Metadata e serialização final
+	out := model.OutboundEnvelope{
+		InboundEnvelope: env,
+		Metadata: model.Metadata{
+			EventID:     uuid.NewString(),
+			CollectedAt: collectedAt,
+		},
+	}
+	value, err := json.Marshal(out)
+	if err != nil {
+		cfg.Logger.Printf("json marshal error: %v", err)
+		return
+	}
+
+	// Chave = deviceId (ou "unknown-device")
+	key := []byte(env.DeviceID)
+	if len(key) == 0 {
 		key = []byte("unknown-device")
 	}
-	if err := prod.Send(ctx, key, payload, kafka.Header{
+
+	if err := prod.Send(ctx, key, value, kafka.Header{
 		Key:   "receivedAt",
-		Value: []byte(receivedAt.Format(time.RFC3339Nano)),
+		Value: []byte(collectedAt.Format(time.RFC3339Nano)),
 	}); err != nil {
 		cfg.Logger.Printf("kafka write error (main): %v", err)
 		return
 	}
-	cfg.Logger.Printf("kafka OK: topic=%s key=%s bytes=%d", cfg.KafkaTopic, string(key), len(payload))
+	cfg.Logger.Printf("kafka OK: topic=%s key=%s bytes=%d", cfg.KafkaTopic, string(key), len(value))
 }
