@@ -3,12 +3,12 @@
     "deviceType": "BatteryBank",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",
-    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "timestamp": "${TIMESTAMP}",
     "payload": {
         "stateOfChargePct": "${__Random(10,100)}",
-        "powerFlowW": "${__chooseRandom(-4000|-2500|-1500|0|1200|2500)}",
+        "powerFlowW": "${__chooseRandom(-4000,-2500,-1500,0,1200,2500)}",
         "voltage": "${__Random(48,56)}",
-        "currentA": "${__chooseRandom(-80|-40|0|20|50)}",
+        "currentA": "${__chooseRandom(-80,-40,0,20,50)}",
         "temperatureC": "${__Random(15,45)}"
     }
 }

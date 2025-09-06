@@ -3,7 +3,7 @@
     "deviceType": "RES",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",
-    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "timestamp": "${TIMESTAMP}",
     "payload": {
         "generatedPowerW": "${__Random(0,7000)}",
         "inverterVoltage": "${__Random(210,240)}",

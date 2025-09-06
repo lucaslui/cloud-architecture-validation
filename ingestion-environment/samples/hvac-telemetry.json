@@ -3,7 +3,7 @@
     "deviceType": "HVAC",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",
-    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "timestamp": "${TIMESTAMP}",
     "payload": {
         "indoorTempC": "${__Random(18,30)}",
         "indoorHumidityPct": "${__Random(25,80)}",
@@ -11,6 +11,6 @@
         "setpointC": "${__Random(20,26)}",
         "fanRpm": "${__Random(400,1400)}",
         "activePowerW": "${__Random(200,2500)}",
-        "mode": "${__chooseRandom(Cool|Heat|Fan|Auto)}"
+        "mode": "${__chooseRandom(Cool,Heat,Fan,Auto)}"
     }
 }

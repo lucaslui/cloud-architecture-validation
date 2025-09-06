@@ -3,7 +3,7 @@
     "deviceType": "EnvironmentalSensor",
     "eventType": "State",
     "schemaVersion": "1.0",
-    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "timestamp": "${TIMESTAMP}",
     "payload": {
         "sensorStatus": "${__chooseRandom(Active,Inactive,Faulty)}",
         "batteryLevelPct": "${__Random(10,100)}",

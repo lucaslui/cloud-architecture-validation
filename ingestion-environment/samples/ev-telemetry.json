@@ -3,7 +3,7 @@
     "deviceType": "ElectricVehicle",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",
-    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "timestamp": "${TIMESTAMP}",
     "payload": {
         "stateOfCharge": "${__Random(10,100)}",
         "estimatedChargingTime": "${__Random(600,14400)}",

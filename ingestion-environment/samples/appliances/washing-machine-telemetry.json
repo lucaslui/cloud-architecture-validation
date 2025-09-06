@@ -3,7 +3,7 @@
     "deviceType": "Appliance",
     "eventType": "Telemetry",
     "schemaVersion": "1.0",
-    "timestamp": "${__time(yyyy-MM-dd'T'HH:mm:ss'Z')}",
+    "timestamp": "${TIMESTAMP}",
     "payload": {
         "voltage": "${__Random(210,230)}",
         "current": "${__Random(0,12)}",
