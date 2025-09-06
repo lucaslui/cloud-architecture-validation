@@ -13,7 +13,7 @@ ENV MQTT_BROKER_URL=tcp://vernemq:1883 \
     MQTT_QOS=0 \
     KAFKA_BROKERS=kafka:9092 \
     KAFKA_TOPIC=raw-events-topic \
-    KAFKA_DLQ_TOPIC=raw-events-dlq
+    KAFKA_KAFKA_DLQ_TOPIC=raw-events-dlq
 
 COPY --from=build /out/collector /app/collector
 

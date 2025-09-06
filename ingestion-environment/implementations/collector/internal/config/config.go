@@ -73,7 +73,7 @@ func LoadConfig() (*Config, error) {
 
 		KafkaBrokers:           strings.Split(brokers, ","),
 		KafkaTopic:             getenv("KAFKA_TOPIC", "raw-events-topic"),
-		KafkaDLQTopic:          getenv("KAFKA_DLQ_TOPIC", "raw-events-dlq"),
+		KafkaDLQTopic:          getenv("KAFKA_KAFKA_DLQ_TOPIC", "raw-events-dlq"),
 		KafkaTopicPartitions:   getenvInt("KAFKA_TOPIC_PARTITIONS", 3),
 		KafkaDLQPartitions:     getenvInt("KAFKA_DLQ_PARTITIONS", 1),
 		KafkaReplicationFactor: getenvInt("KAFKA_REPLICATION_FACTOR", 1),
