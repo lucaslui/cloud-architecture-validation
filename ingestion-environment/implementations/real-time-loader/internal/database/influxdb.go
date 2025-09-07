@@ -18,7 +18,6 @@ import (
 type InfluxDB struct {
 	Client              influxdb2.Client
 	WriteAPI            api.WriteAPIBlocking
-	MeasurementTemplate string
 }
 
 func NewInfluxDB(cfg *config.Config) *InfluxDB {
@@ -27,7 +26,6 @@ func NewInfluxDB(cfg *config.Config) *InfluxDB {
 	return &InfluxDB{
 		Client:              client,
 		WriteAPI:            writeAPI,
-		MeasurementTemplate: cfg.InfluxMeasurementTemplate,
 	}
 }
 
@@ -37,69 +35,33 @@ func (db *InfluxDB) Close() {
 	}
 }
 
-func (db *InfluxDB) WriteEvent(ctx context.Context, evt *model.EnrichedEvent) error {
-	measurement := db.resolveMeasurement(evt.DeviceType)
-	point := db.buildPoint(measurement, evt)
+func (db *InfluxDB) WriteEvent(ctx context.Context, evt *model.InboundEnvelope) error {
+	point := db.buildPoint(evt)
 	return db.WriteAPI.WritePoint(ctx, point)
 }
 
-// ---------- helpers ----------
-
-func (db *InfluxDB) resolveMeasurement(deviceType string) string {
-	name := sanitizeName(strings.ToLower(deviceType))
-	tmpl := db.MeasurementTemplate
-	if tmpl == "" {
-		tmpl = "%s"
-	}
-	return fmt.Sprintf(tmpl, name)
-}
-
-var invalidRe = regexp.MustCompile(`[^a-zA-Z0-9_]+`)
-
-func sanitizeName(s string) string {
-	s = strings.TrimSpace(s)
-	s = invalidRe.ReplaceAllString(s, "_")
-	s = strings.Trim(s, "_")
-	if s == "" {
-		return "unknown"
-	}
-	return s
-}
-
-func (db *InfluxDB) buildPoint(measurement string, evt *model.EnrichedEvent) *write.Point {
-	// Tags (atenção à cardinalidade em produção)
+func (db *InfluxDB) buildPoint(evt *model.InboundEnvelope) *write.Point {
 	tags := map[string]string{
 		"deviceId":       evt.DeviceID,
 		"deviceType":     evt.DeviceType,
-		"eventType":      evt.EventType,
+		"deviceModel":    evt.Context.DeviceModel,
+		"deviceCategory": evt.Context.DeviceCategory,
+		"deviceLocation": evt.Context.DeviceLocation,
 		"schemaVersion":  evt.SchemaVersion,
-		"regionId":       evt.Metadata.Enrichment.RegionID,
-		"deviceLocation": evt.Metadata.Enrichment.DeviceLocation,
-		"deviceCategory": evt.Metadata.Enrichment.DeviceCategory,
-		"deviceModel":    evt.Metadata.Enrichment.DeviceModel,
-		"endUserId":      evt.Metadata.Enrichment.EndUserID,
-		"contractType":   evt.Metadata.Enrichment.ContractType,
+		"regionId":       evt.Context.RegionID,
 	}
 
-	// Fields dinâmicos a partir do payload (flatten)
-	fields := make(map[string]interface{})
 	flat := make(map[string]interface{})
 	flatten("", evt.Payload, flat)
+
+	fields := make(map[string]interface{})
 	for k, v := range flat {
 		if fv, ok := normalizeFieldValue(v); ok {
 			fields[sanitizeFieldKey(k)] = fv
 		}
 	}
-	// opcional: programas como string única
-	if len(evt.Metadata.Enrichment.Programs) > 0 {
-		fields["programs"] = strings.Join(evt.Metadata.Enrichment.Programs, ",")
-	}
 
-	ts := evt.Timestamp
-	if ts.IsZero() {
-		ts = time.Now().UTC()
-	}
-	return write.NewPoint(measurement, tags, fields, ts)
+	return write.NewPoint(evt.EventType, tags, fields, evt.Timestamp)
 }
 
 // flatten: obj/array -> chaves separadas por "_"

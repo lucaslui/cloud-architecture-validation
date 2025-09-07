@@ -11,8 +11,6 @@ type Config struct {
 	InfluxToken  string
 	InfluxOrg    string
 	InfluxBucket string
-
-	InfluxMeasurementTemplate string
 }
 
 func getenv(k, def string) string {
@@ -32,7 +30,5 @@ func LoadEnvVariables() *Config {
 		InfluxToken:  os.Getenv("INFLUX_TOKEN"),
 		InfluxOrg:    os.Getenv("INFLUX_ORG"),
 		InfluxBucket: os.Getenv("INFLUX_BUCKET"),
-
-		InfluxMeasurementTemplate: getenv("INFLUX_MEASUREMENT_TEMPLATE", "telemetry_%s"),
 	}
 }

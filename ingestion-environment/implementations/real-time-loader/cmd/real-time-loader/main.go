@@ -18,8 +18,8 @@ import (
 func main() {
 	cfg := config.LoadEnvVariables()
 
-	log.Printf("[boot] rt-loader | brokers=%s group=%s topic=%s influx=%s org=%s bucket=%s meas_template=%s",
-		cfg.KafkaBrokers, cfg.KafkaGroupID, cfg.KafkaInputTopic, cfg.InfluxURL, cfg.InfluxOrg, cfg.InfluxBucket, cfg.InfluxMeasurementTemplate)
+	log.Printf("[boot] rt-loader | brokers=%s group=%s topic=%s influx=%s org=%s bucket=%s",
+		cfg.KafkaBrokers, cfg.KafkaGroupID, cfg.KafkaInputTopic, cfg.InfluxURL, cfg.InfluxOrg, cfg.InfluxBucket)
 
 	db := database.NewInfluxDB(cfg)
 	defer db.Close()
@@ -41,7 +41,7 @@ func main() {
 			continue
 		}
 
-		var evt model.EnrichedEvent
+		var evt model.InboundEnvelope
 		if err := json.Unmarshal(msg.Value, &evt); err != nil {
 			log.Printf("[parse] erro: %v | payload=%s", err, config.Truncate(msg.Value, 512))
 			_ = kc.CommitMessages(ctx, msg)
