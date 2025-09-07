@@ -13,14 +13,13 @@ import (
 	"github.com/lucaslui/hems/enricher-validator/internal/data"
 	"github.com/lucaslui/hems/enricher-validator/internal/kafka"
 	"github.com/lucaslui/hems/enricher-validator/internal/processing"
-	"github.com/lucaslui/hems/enricher-validator/internal/registry"
 )
 
 func main() {
 	cfg := config.Load()
 
-	log.Printf("[boot] enricher-validator | brokers=%v group=%s in=%s out=%s dlq=%s redis=%s ns=%s",
-		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic, cfg.RedisAddr, cfg.RedisNamespace)
+	log.Printf("[boot] enricher | brokers=%v group=%s in=%s out=%s dlq=%s redis=%s ns=%s",
+		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 
@@ -43,16 +42,11 @@ func main() {
 	writerDLQ := kafka.NewWriter(cfg.Brokers, cfg.DLQTopic)
 	defer writerDLQ.Close()
 
-	// 3) registry + contexto
-	reg := registry.NewRedisRegistry(registry.RedisOpts{
-		Addr: cfg.RedisAddr, Password: cfg.RedisPassword, DB: cfg.RedisDB,
-		Namespace: cfg.RedisNamespace, InvalidateChannel: cfg.RedisInvalidateChan,
-		UsePubSub: cfg.RedisUsePubSub, Timeout: 5 * time.Second,
-	})
+	// 3) contexto
 	store, _ := data.LoadContext(cfg.ContextStorePath)
 
 	// 4) processor
-	proc := processing.NewProcessor(cfg, reg, store, writerOut, writerDLQ)
+	proc := processing.NewProcessor(cfg, store, writerOut, writerDLQ)
 
 	// 5) loop principal (obter → validar → enriquecer → publicar)
 	for {

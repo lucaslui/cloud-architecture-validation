@@ -9,22 +9,17 @@ import (
 const (
 	DefaultKafkaBrokers = "localhost:9092"
 	DefaultGroupID      = "enricher-validator"
-	DefaultInputTopic   = "raw-events-topic"
+	DefaultInputTopic   = "validated-events-topic"
 	DefaultOutputTopic  = "enriched-events-topic"
-	DefaultDLQTopic     = "validation-dlq-topic"
+	DefaultDLQTopic     = "enriched-events-dlq"
 
 	DefaultOutTopicPartitions = 3
 	DefaultDLQTopicPartitions = 1
-
-	DefaultRedisAddr           = "localhost:6379"
-	DefaultRedisNamespace      = "schema"
-	DefaultRedisInvalidateChan = "schemas:invalidate"
 
 	DefaultContextStoreJSON = "./device-context.json"
 )
 
 type Config struct {
-	// Kafka
 	Brokers     []string
 	GroupID     string
 	InputTopic  string
@@ -34,15 +29,6 @@ type Config struct {
 	OutTopicPartitions int
 	DLQTopicPartitions int
 
-	// Redis (schema registry)
-	RedisAddr           string
-	RedisPassword       string
-	RedisDB             int
-	RedisNamespace      string
-	RedisUsePubSub      bool
-	RedisInvalidateChan string
-
-	// Enriquecimento
 	ContextStorePath string
 }
 
@@ -62,16 +48,6 @@ func envOrDefaultInt(key string, def int) int {
 	}
 	return def
 }
-func envOrDefaultBool(key string, def bool) bool {
-	switch strings.ToLower(strings.TrimSpace(os.Getenv(key))) {
-	case "1", "true", "yes", "y":
-		return true
-	case "0", "false", "no", "n":
-		return false
-	default:
-		return def
-	}
-}
 
 func Load() Config {
 	return Config{
@@ -83,13 +59,6 @@ func Load() Config {
 
 		OutTopicPartitions: envOrDefaultInt("OUT_TOPIC_PARTITIONS", DefaultOutTopicPartitions),
 		DLQTopicPartitions: envOrDefaultInt("KAFKA_DLQ_TOPIC_PARTITIONS", DefaultDLQTopicPartitions),
-
-		RedisAddr:           envOrDefault("REDIS_ADDR", DefaultRedisAddr),
-		RedisPassword:       os.Getenv("REDIS_PASSWORD"),
-		RedisDB:             envOrDefaultInt("REDIS_DB", 0),
-		RedisNamespace:      envOrDefault("REDIS_NAMESPACE", DefaultRedisNamespace),
-		RedisUsePubSub:      envOrDefaultBool("REDIS_USE_PUBSUB", true),
-		RedisInvalidateChan: envOrDefault("REDIS_INVALIDATE_CHANNEL", DefaultRedisInvalidateChan),
 
 		ContextStorePath: envOrDefault("CONTEXT_STORE_PATH", DefaultContextStoreJSON),
 	}

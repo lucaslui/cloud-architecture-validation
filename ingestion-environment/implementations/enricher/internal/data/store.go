@@ -9,7 +9,7 @@ import (
 )
 
 type Store struct {
-	generic *model.Enrichment
+	generic *model.ContextEnrichment
 }
 
 func LoadContext(path string) (*Store, error) {
@@ -18,11 +18,11 @@ func LoadContext(path string) (*Store, error) {
 		log.Printf("[warn] Context store genérico não encontrado (%s); enriquecimento virá vazio. Err: %v", path, err)
 		return &Store{generic: nil}, nil
 	}
-	var e model.Enrichment
+	var e model.ContextEnrichment
 	if err := json.Unmarshal(b, &e); err != nil {
 		return nil, err
 	}
 	return &Store{generic: &e}, nil
 }
 
-func (s *Store) Get() *model.Enrichment { return s.generic }
+func (s *Store) Get() *model.ContextEnrichment { return s.generic }
