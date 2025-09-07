@@ -126,30 +126,43 @@ services:
       kafka:
         condition: service_healthy
 
-  enricher_validator:
-    build: ./enricher-validator
-    container_name: enricher-validator
+  validator:
+    build: ./validator
+    container_name: validator
     restart: unless-stopped
     environment:
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_INPUT_TOPIC=raw-events-topic
-      - KAFKA_OUTPUT_TOPIC=enriched-events-topic
-      - KAFKA_DLQ_TOPIC=validation-dlq-topic
+      - KAFKA_OUTPUT_TOPIC=validated-events-topic
+      - KAFKA_DLQ_TOPIC=validated-events-dlq
       - REDIS_ADDR=redis:6379
       - REDIS_DB=0
       - REDIS_NAMESPACE=schema
       - REDIS_USE_PUBSUB=true
       - REDIS_INVALIDATE_CHANNEL=schemas:invalidate
-      - CONTEXT_STORE_PATH=/app/device-context.json
     depends_on:
       collector:
         condition: service_started
-      kafka:
-        condition: service_healthy
       redis:
         condition: service_healthy
       schema-loader:
         condition: service_completed_successfully
+
+  enricher:
+    build: ./enricher
+    container_name: enricher
+    restart: unless-stopped
+    environment:
+      - KAFKA_BROKERS=kafka:9092
+      - KAFKA_INPUT_TOPIC=validated-events-topic
+      - KAFKA_OUTPUT_TOPIC=enriched-events-topic
+      - KAFKA_DLQ_TOPIC=enriched-events-dlq
+      - CONTEXT_STORE_PATH=/app/device-context.json
+    depends_on:
+      validator:
+        condition: service_started
+      kafka:
+        condition: service_healthy
 
   real-time-loader:
     build: ./real-time-loader
@@ -163,8 +176,6 @@ services:
       - INFLUX_TOKEN=dev-token
       - INFLUX_ORG=hems
       - INFLUX_BUCKET=hems_timeseries
-      # Opcional: nome da medição
-      - INFLUX_MEASUREMENT=smartmeter
     depends_on:
       kafka:
         condition: service_healthy
