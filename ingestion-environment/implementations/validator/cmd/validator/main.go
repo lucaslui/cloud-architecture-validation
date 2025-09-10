@@ -1,4 +1,3 @@
-// internal/main.go
 package main
 
 import (
@@ -12,7 +11,7 @@ import (
 	"time"
 
 	"github.com/lucaslui/hems/validator/internal/config"
-	"github.com/lucaslui/hems/validator/internal/kafka"
+	"github.com/lucaslui/hems/validator/internal/broker"
 	"github.com/lucaslui/hems/validator/internal/processing"
 	"github.com/lucaslui/hems/validator/internal/registry"
 	kafkasdk "github.com/segmentio/kafka-go"
@@ -29,7 +28,7 @@ func main() {
 
 	// 1) garantir tópicos
 	ensureCtx, ensureCancel := context.WithTimeout(ctx, 15*time.Second)
-	kafka.EnsureTopics(ensureCtx, kafka.EnsureTopicsArgs{
+	broker.EnsureTopics(ensureCtx, broker.EnsureTopicsArgs{
 		Brokers: cfg.Brokers, InputTopic: cfg.InputTopic,
 		OutputTopic: cfg.OutputTopic, OutTopicPartitions: cfg.OutTopicPartitions,
 		DLQTopic: cfg.DLQTopic, DLQTopicPartitions: cfg.DLQTopicPartitions,
@@ -37,13 +36,13 @@ func main() {
 	ensureCancel()
 
 	// 2) construir reader/writers
-	reader := kafka.NewReader(cfg)
+	reader := broker.NewReader(cfg)
 	defer reader.Close()
 
-	writerOut := kafka.NewWriter(cfg.Brokers, cfg.OutputTopic)
+	writerOut := broker.NewWriter(cfg.Brokers, cfg.OutputTopic)
 	defer writerOut.Close()
 
-	writerDLQ := kafka.NewWriter(cfg.Brokers, cfg.DLQTopic)
+	writerDLQ := broker.NewWriter(cfg.Brokers, cfg.DLQTopic)
 	defer writerDLQ.Close()
 
 	// 3) registry + processor

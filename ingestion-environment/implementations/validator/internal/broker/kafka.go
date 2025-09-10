@@ -1,6 +1,7 @@
-package kafka
+package broker
 
 import (
+	"time"
 	"context"
 	"fmt"
 	"log"
@@ -8,8 +9,54 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/lucaslui/hems/validator/internal/config"
 	"github.com/segmentio/kafka-go"
 )
+
+const (
+	kafkaMinBytes = 10_000     // 10KB
+	kafkaMaxBytes = 10_000_000 // 10MB
+)
+
+type KafkaClient struct {
+	Reader *kafka.Reader
+	Writer *kafka.Writer
+}
+
+func NewKafkaClient(cfg config.Config) *KafkaClient {
+	return &KafkaClient{
+		Reader: NewReader(cfg),
+		Writer: NewWriter(cfg.Brokers, cfg.OutputTopic),
+	}
+}
+
+func NewReader(cfg config.Config) *kafka.Reader {
+	return kafka.NewReader(kafka.ReaderConfig{
+		Brokers:         cfg.Brokers,
+		GroupID:         cfg.GroupID,
+		Topic:           cfg.InputTopic,
+		MinBytes:        kafkaMinBytes,
+		MaxBytes:        kafkaMaxBytes,
+		MaxWait:         50 * time.Millisecond, // formar lotes
+		QueueCapacity:   2048,                  // mais msgs em buffer
+		ReadLagInterval: -1,                    // menos overhead
+		// Importante: não force StartOffset aqui; deixe o committed offset do grupo prevalecer.
+	})
+}
+
+func NewWriter(brokers []string, topic string) *kafka.Writer {
+	return &kafka.Writer{
+		Addr:         kafka.TCP(brokers...),
+		Topic:        topic,
+		Balancer:     &kafka.Hash{},
+		BatchSize:    1000,                 // alvo de 1000 msgs
+		BatchBytes:   1 << 20,              // ~1MB
+		BatchTimeout: 5 * time.Millisecond, // baixa latência com batching
+		Compression:  kafka.Snappy,         // ou LZ4/ZSTD
+		RequiredAcks: kafka.RequireOne,     // throughput > durabilidade (ajuste conforme SLO)
+		Async:        true,                 // libera o produtor
+	}
+}
 
 const (
 	defaultTopicReplication = int16(1)
@@ -18,7 +65,9 @@ const (
 )
 
 func toConfigEntries(m map[string]string) []kafka.ConfigEntry {
-	if len(m) == 0 { return nil }
+	if len(m) == 0 {
+		return nil
+	}
 	out := make([]kafka.ConfigEntry, 0, len(m))
 	for k, v := range m {
 		val := v
@@ -29,15 +78,21 @@ func toConfigEntries(m map[string]string) []kafka.ConfigEntry {
 
 func ensureTopic(ctx context.Context, broker, topic string, partitions int, rf int16, config map[string]string) error {
 	conn, err := kafka.DialContext(ctx, "tcp", broker)
-	if err != nil { return fmt.Errorf("dial broker: %w", err) }
+	if err != nil {
+		return fmt.Errorf("dial broker: %w", err)
+	}
 	defer conn.Close()
 
 	controller, err := conn.Controller()
-	if err != nil { return fmt.Errorf("controller: %w", err) }
+	if err != nil {
+		return fmt.Errorf("controller: %w", err)
+	}
 
 	ctrlAddr := net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port))
 	ctrlConn, err := kafka.DialContext(ctx, "tcp", ctrlAddr)
-	if err != nil { return fmt.Errorf("dial controller: %w", err) }
+	if err != nil {
+		return fmt.Errorf("dial controller: %w", err)
+	}
 	defer ctrlConn.Close()
 
 	tc := kafka.TopicConfig{
@@ -64,18 +119,21 @@ type EnsureTopicsArgs struct {
 }
 
 func EnsureTopics(ctx context.Context, a EnsureTopicsArgs) {
-	if len(a.Brokers) == 0 { log.Printf("[warn] nenhum broker para ensureTopics"); return }
+	if len(a.Brokers) == 0 {
+		log.Printf("[warn] nenhum broker para ensureTopics")
+		return
+	}
 	broker := a.Brokers[0]
 
 	if err := ensureTopic(ctx, broker, a.OutputTopic, a.OutTopicPartitions, defaultTopicReplication,
-		map[string]string{"cleanup.policy":"delete", "retention.ms": defaultOutRetentionMs, "compression.type": "producer"}); err != nil {
+		map[string]string{"cleanup.policy": "delete", "retention.ms": defaultOutRetentionMs, "compression.type": "producer"}); err != nil {
 		log.Printf("[warn] ensure output topic (%s): %v", a.OutputTopic, err)
 	} else {
 		log.Printf("[topics] ensured output topic=%s partitions=%d retention.ms=%s", a.OutputTopic, a.OutTopicPartitions, defaultOutRetentionMs)
 	}
 
 	if err := ensureTopic(ctx, broker, a.DLQTopic, a.DLQTopicPartitions, defaultTopicReplication,
-		map[string]string{"cleanup.policy":"delete", "retention.ms": defaultDLQRetentionMs, "compression.type": "producer"}); err != nil {
+		map[string]string{"cleanup.policy": "delete", "retention.ms": defaultDLQRetentionMs, "compression.type": "producer"}); err != nil {
 		log.Printf("[warn] ensure DLQ topic (%s): %v", a.DLQTopic, err)
 	} else {
 		log.Printf("[topics] ensured dlq topic=%s partitions=%d retention.ms=%s", a.DLQTopic, a.DLQTopicPartitions, defaultDLQRetentionMs)
