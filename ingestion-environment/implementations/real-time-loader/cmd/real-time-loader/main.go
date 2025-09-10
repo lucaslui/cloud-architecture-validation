@@ -34,7 +34,7 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	setupGracefulShutdown(cancel, kc, db)
+	setupGracefulShutdown(cancel)
 
 	// Canais
 	msgCh := make(chan kafka.Message, 5000)
@@ -121,7 +121,7 @@ func main() {
 	close(ackCh)
 }
 
-func setupGracefulShutdown(cancel context.CancelFunc, k *broker.KafkaClient, db *database.InfluxDB) {
+func setupGracefulShutdown(cancel context.CancelFunc) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
