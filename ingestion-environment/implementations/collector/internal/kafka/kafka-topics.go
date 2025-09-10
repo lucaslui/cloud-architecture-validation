@@ -42,6 +42,16 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config) error {
 			Topic:             cfg.KafkaTopic,
 			NumPartitions:     cfg.KafkaTopicPartitions,
 			ReplicationFactor: cfg.KafkaReplicationFactor,
+			ConfigEntries: []kafka.ConfigEntry{
+				{
+					ConfigName:  "compression.type",
+					ConfigValue: "producer",
+				},
+				{
+					ConfigName:  "retention.ms",
+					ConfigValue: "104800000",
+				},
+			},
 		}); err != nil {
 			return err
 		}

@@ -2,6 +2,7 @@ package kafka
 
 import (
 	"context"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 
@@ -15,23 +16,37 @@ type KafkaProducer struct {
 }
 
 func NewKafkaProducer(cfg *config.Config) *KafkaProducer {
-	balancer := &kafka.Hash{} // particionamento por chave
-	return &KafkaProducer{
-		main: &kafka.Writer{
-			Addr:         kafka.TCP(cfg.KafkaBrokers...),
-			Topic:        cfg.KafkaTopic,
-			Balancer:     balancer,
-			BatchSize:    100,
-			RequiredAcks: kafka.RequireAll,
-		},
-		dlq: &kafka.Writer{
-			Addr:         kafka.TCP(cfg.KafkaBrokers...),
-			Topic:        cfg.KafkaDLQTopic,
-			Balancer:     balancer,
-			BatchSize:    10,
-			RequiredAcks: kafka.RequireAll,
-		},
+	balancer := &kafka.Hash{}
+
+	main := &kafka.Writer{
+		Addr:         kafka.TCP(cfg.KafkaBrokers...),
+		Topic:        cfg.KafkaTopic,
+		Balancer:     balancer,
+
+		BatchSize:    1000,                 // alvo de msgs por batch
+		BatchBytes:   1 << 20,              // ~1MB por batch
+		BatchTimeout: 5 * time.Millisecond, // fecha lote rápido
+
+		RequiredAcks: kafka.RequireOne,
+		Async:        true,
+		Compression:  kafka.Snappy,
 	}
+
+	dlq := &kafka.Writer{
+		Addr:         kafka.TCP(cfg.KafkaBrokers...),
+		Topic:        cfg.KafkaDLQTopic,
+		Balancer:     balancer,
+
+		BatchSize:    200,
+		BatchBytes:   512 << 10,            // 512KB
+		BatchTimeout: 10 * time.Millisecond,
+
+		RequiredAcks: kafka.RequireOne,
+		Async:        true,
+		Compression:  kafka.Snappy,
+	}
+
+	return &KafkaProducer{main: main, dlq: dlq}
 }
 
 func (p *KafkaProducer) Close(ctx context.Context) {
@@ -54,3 +69,5 @@ func (p *KafkaProducer) SendDLQ(ctx context.Context, key, value []byte, headers 
 		Headers: headers,
 	})
 }
+
+

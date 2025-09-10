@@ -39,8 +39,10 @@ func main() {
 	producer := kafkapkg.NewKafkaProducer(cfg)
 	defer producer.Close(ctx)
 
-	// Cliente MQTT + reconexão com backoff (bloqueia até cancel)
-	client := mqttpkg.BuildMQTTClient(cfg, producer)
+	dispatcher := kafkapkg.NewKafkaDispatcher(producer, 10_000) // buffer amplo
+	defer dispatcher.Stop()
+
+	client := mqttpkg.BuildMQTTClient(cfg, producer, dispatcher) // muda assinatura
 	mqttpkg.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
 
 	<-ctx.Done()

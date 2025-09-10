@@ -11,9 +11,9 @@ import (
 	"github.com/lucaslui/hems/collector/internal/kafka"
 )
 
-func BuildMQTTClient(cfg *config.Config, producer *kafka.KafkaProducer) mqtt.Client {
+func BuildMQTTClient(cfg *config.Config, producer *kafka.KafkaProducer, disp *kafka.KafkaDispatcher) mqtt.Client {
 	h := func(_ mqtt.Client, msg mqtt.Message) {
-		handler.HandleMessage(context.Background(), cfg, producer, msg)
+		handler.HandleMessage(context.Background(), cfg, producer, disp, msg)
 	}
 
 	opts := mqtt.NewClientOptions().
@@ -25,7 +25,8 @@ func BuildMQTTClient(cfg *config.Config, producer *kafka.KafkaProducer) mqtt.Cli
 		SetPingTimeout(10 * time.Second).
 		SetAutoReconnect(true).
 		SetConnectRetry(true).
-		SetConnectRetryInterval(5 * time.Second)
+		SetConnectRetryInterval(5 * time.Second).
+		SetMessageChannelDepth(5000)
 
 	if cfg.MQTTUsername != "" {
 		opts.SetUsername(cfg.MQTTUsername)
