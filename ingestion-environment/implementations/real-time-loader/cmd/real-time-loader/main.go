@@ -58,10 +58,10 @@ func main() {
 
 	// 2) Workers: parse → enfileira no Influx (WriteAPI assíncrono) → sinaliza ack
 	var wg sync.WaitGroup
-	wg.Add(cfg.Workers)
+	wg.Add(cfg.ProcessingWorkers)
 	// fetcher: igual ao que já te passei (kc.ConsumeMessages -> msgCh)
 	// workers: agora ack após ENFILEIRAR no Influx
-	for i := 0; i < cfg.Workers; i++ {
+	for i := 0; i < cfg.ProcessingWorkers; i++ {
 		go func(id int) {
 			defer wg.Done()
 			for m := range msgCh {

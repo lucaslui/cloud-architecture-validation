@@ -16,11 +16,11 @@ type Config struct {
 	InfluxBucket string
 
 	// já existiam/foram sugeridos antes
-	Workers        int
-	AckBatchSize   int
-	KafkaMinBytes  int
-	KafkaMaxBytes  int
-	KafkaMaxWaitMs int
+	ProcessingWorkers int
+	AckBatchSize      int
+	KafkaMinBytes     int
+	KafkaMaxBytes     int
+	KafkaMaxWaitMs    int
 
 	// NOVO: batching assíncrono do Influx
 	InfluxBatchSize       int // ex.: 5000
@@ -48,11 +48,11 @@ func LoadEnvVariables() *Config {
 		InfluxBucket: os.Getenv("INFLUX_BUCKET"),
 
 		// defaults sensatos
-		Workers:        getenvInt("WORKERS", 8),
-		AckBatchSize:   getenvInt("ACK_BATCH_SIZE", 500),
-		KafkaMinBytes:  getenvInt("KAFKA_MIN_BYTES", 10_000),     // 10KB
-		KafkaMaxBytes:  getenvInt("KAFKA_MAX_BYTES", 10_000_000), // 10MB
-		KafkaMaxWaitMs: getenvInt("KAFKA_MAX_WAIT_MS", 50),
+		ProcessingWorkers: getenvInt("WORKERS", 8),
+		AckBatchSize:      getenvInt("ACK_BATCH_SIZE", 500),
+		KafkaMinBytes:     getenvInt("KAFKA_MIN_BYTES", 10_000),     // 10KB
+		KafkaMaxBytes:     getenvInt("KAFKA_MAX_BYTES", 10_000_000), // 10MB
+		KafkaMaxWaitMs:    getenvInt("KAFKA_MAX_WAIT_MS", 50),
 
 		InfluxBatchSize:       getenvInt("INFLUX_BATCH_SIZE", 5000),
 		InfluxFlushIntervalMs: getenvInt("INFLUX_FLUSH_INTERVAL_MS", 100),
