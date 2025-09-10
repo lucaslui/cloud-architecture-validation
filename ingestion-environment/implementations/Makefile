@@ -1,8 +1,6 @@
-## Sobe stack docker-compose (VerneMQ + Kafka + Collector)
 compose-up:
 	docker compose up -d --build
 
-## Derruba stack docker-compose
 compose-down:
 	docker compose down -v
 
