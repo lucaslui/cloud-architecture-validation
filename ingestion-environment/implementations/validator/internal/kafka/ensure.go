@@ -68,14 +68,14 @@ func EnsureTopics(ctx context.Context, a EnsureTopicsArgs) {
 	broker := a.Brokers[0]
 
 	if err := ensureTopic(ctx, broker, a.OutputTopic, a.OutTopicPartitions, defaultTopicReplication,
-		map[string]string{"cleanup.policy":"delete", "retention.ms": defaultOutRetentionMs}); err != nil {
+		map[string]string{"cleanup.policy":"delete", "retention.ms": defaultOutRetentionMs, "compression.type": "producer"}); err != nil {
 		log.Printf("[warn] ensure output topic (%s): %v", a.OutputTopic, err)
 	} else {
 		log.Printf("[topics] ensured output topic=%s partitions=%d retention.ms=%s", a.OutputTopic, a.OutTopicPartitions, defaultOutRetentionMs)
 	}
 
 	if err := ensureTopic(ctx, broker, a.DLQTopic, a.DLQTopicPartitions, defaultTopicReplication,
-		map[string]string{"cleanup.policy":"delete", "retention.ms": defaultDLQRetentionMs}); err != nil {
+		map[string]string{"cleanup.policy":"delete", "retention.ms": defaultDLQRetentionMs, "compression.type": "producer"}); err != nil {
 		log.Printf("[warn] ensure DLQ topic (%s): %v", a.DLQTopic, err)
 	} else {
 		log.Printf("[topics] ensured dlq topic=%s partitions=%d retention.ms=%s", a.DLQTopic, a.DLQTopicPartitions, defaultDLQRetentionMs)
