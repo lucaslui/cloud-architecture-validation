@@ -16,28 +16,49 @@ import (
 )
 
 type InfluxDB struct {
-	Client              influxdb2.Client
-	WriteAPI            api.WriteAPIBlocking
+	Client   influxdb2.Client
+	WriteAPI api.WriteAPI
+	errsDone chan struct{}
 }
 
 func NewInfluxDB(cfg *config.Config) *InfluxDB {
-	client := influxdb2.NewClient(cfg.InfluxURL, cfg.InfluxToken)
-	writeAPI := client.WriteAPIBlocking(cfg.InfluxOrg, cfg.InfluxBucket)
-	return &InfluxDB{
-		Client:              client,
-		WriteAPI:            writeAPI,
-	}
+	opts := influxdb2.DefaultOptions().
+		SetBatchSize(uint(cfg.InfluxBatchSize)).
+		SetFlushInterval(uint(cfg.InfluxFlushIntervalMs))
+		// (opcional) .SetRetryInterval(1000).SetMaxRetries(5) …
+
+	client := influxdb2.NewClientWithOptions(cfg.InfluxURL, cfg.InfluxToken, opts)
+	w := client.WriteAPI(cfg.InfluxOrg, cfg.InfluxBucket)
+
+	// drena o canal de erros do writer em background
+	errsDone := make(chan struct{})
+	go func() {
+		defer close(errsDone)
+		for err := range w.Errors() {
+			// logue, exporte métrica, etc.
+			fmt.Printf("[influx-async] write error: %v\n", err)
+		}
+	}()
+
+	return &InfluxDB{Client: client, WriteAPI: w, errsDone: errsDone}
 }
 
 func (db *InfluxDB) Close() {
-	if db != nil && db.Client != nil {
-		db.Client.Close()
+	if db == nil || db.Client == nil {
+		return
 	}
+	// força flush do buffer pendente antes de fechar
+	db.WriteAPI.Flush()
+	db.Client.Close()
+	// aguarda dreno do canal de erros
+	<-db.errsDone
 }
 
-func (db *InfluxDB) WriteEvent(ctx context.Context, evt *model.InboundEnvelope) error {
+// agora o WriteEvent apenas ENFILEIRA o ponto (não bloqueia)
+func (db *InfluxDB) WriteEvent(_ context.Context, evt *model.InboundEnvelope) error {
 	point := db.buildPoint(evt)
-	return db.WriteAPI.WritePoint(ctx, point)
+	db.WriteAPI.WritePoint(point)
+	return nil
 }
 
 func (db *InfluxDB) buildPoint(evt *model.InboundEnvelope) *write.Point {

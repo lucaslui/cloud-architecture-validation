@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"os"
+	"strconv"
+)
 
 type Config struct {
 	KafkaBrokers    string
@@ -11,11 +14,24 @@ type Config struct {
 	InfluxToken  string
 	InfluxOrg    string
 	InfluxBucket string
+
+	// já existiam/foram sugeridos antes
+	Workers        int
+	AckBatchSize   int
+	KafkaMinBytes  int
+	KafkaMaxBytes  int
+	KafkaMaxWaitMs int
+
+	// NOVO: batching assíncrono do Influx
+	InfluxBatchSize       int // ex.: 5000
+	InfluxFlushIntervalMs int // ex.: 100 (ms)
 }
 
-func getenv(k, def string) string {
+func getenvInt(k string, def int) int {
 	if v := os.Getenv(k); v != "" {
-		return v
+		if i, err := strconv.Atoi(v); err == nil && i > 0 {
+			return i
+		}
 	}
 	return def
 }
@@ -30,5 +46,15 @@ func LoadEnvVariables() *Config {
 		InfluxToken:  os.Getenv("INFLUX_TOKEN"),
 		InfluxOrg:    os.Getenv("INFLUX_ORG"),
 		InfluxBucket: os.Getenv("INFLUX_BUCKET"),
+
+		// defaults sensatos
+		Workers:        getenvInt("WORKERS", 8),
+		AckBatchSize:   getenvInt("ACK_BATCH_SIZE", 500),
+		KafkaMinBytes:  getenvInt("KAFKA_MIN_BYTES", 10_000),     // 10KB
+		KafkaMaxBytes:  getenvInt("KAFKA_MAX_BYTES", 10_000_000), // 10MB
+		KafkaMaxWaitMs: getenvInt("KAFKA_MAX_WAIT_MS", 50),
+
+		InfluxBatchSize:       getenvInt("INFLUX_BATCH_SIZE", 5000),
+		InfluxFlushIntervalMs: getenvInt("INFLUX_FLUSH_INTERVAL_MS", 100),
 	}
 }
