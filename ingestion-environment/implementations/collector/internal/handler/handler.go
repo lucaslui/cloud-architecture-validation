@@ -9,8 +9,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/segmentio/kafka-go"
 
-	"github.com/lucaslui/hems/collector/internal/config"
 	"github.com/lucaslui/hems/collector/internal/broker"
+	"github.com/lucaslui/hems/collector/internal/config"
 	"github.com/lucaslui/hems/collector/internal/model"
 	"github.com/lucaslui/hems/collector/internal/validate"
 )
@@ -42,9 +42,9 @@ func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaPr
 		return
 	}
 
-	out := model.OutboundEnvelope{
-		InboundEnvelope: env,
-		Metadata: model.Metadata{
+	out := model.OutboundCollectorEnvelope{
+		InboundCollectorEnvelope: env,
+		Metadata: model.OutboundCollectorMetadata{
 			EventID:     uuid.NewString(),
 			CollectedAt: collectedAt,
 		},
