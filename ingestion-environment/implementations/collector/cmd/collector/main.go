@@ -3,26 +3,24 @@ package main
 import (
 	"context"
 	"log"
-	"os"
-	"os/signal"
-	"syscall"
 	"time"
 
 	"github.com/lucaslui/hems/collector/internal/config"
 	"github.com/lucaslui/hems/collector/internal/broker"
 	"github.com/lucaslui/hems/collector/internal/mqtt"
+	"github.com/lucaslui/hems/collector/internal/runtime"
 )
 
 func main() {
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("config error: %v", err)
+		log.Fatalf("[error] config error: %v", err)
 	}
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	setupGracefulShutdown(cancel, cfg.Logger)
+	runtime.SetupGracefulShutdown(cancel, cfg.Logger)
 
 	if err := broker.EnsureKafkaTopics(ctx, cfg); err != nil {
 		cfg.Logger.Fatalf("kafka ensure topics error: %v", err)
@@ -38,15 +36,5 @@ func main() {
 	mqtt.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
 
 	<-ctx.Done()
-	cfg.Logger.Println("collector stopped")
-}
-
-func setupGracefulShutdown(cancel context.CancelFunc, logger *log.Logger) {
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	go func() {
-		s := <-sigCh
-		logger.Printf("\nreceived signal: %v — shutting down...", s)
-		cancel()
-	}()
+	cfg.Logger.Println("[collector] service stopped")
 }
