@@ -8,13 +8,13 @@ import (
 	"syscall"
 	"time"
 
-	cfgpkg "github.com/lucaslui/hems/collector/internal/config"
-	kafkapkg "github.com/lucaslui/hems/collector/internal/kafka"
-	mqttpkg "github.com/lucaslui/hems/collector/internal/mqtt"
+	"github.com/lucaslui/hems/collector/internal/config"
+	"github.com/lucaslui/hems/collector/internal/broker"
+	"github.com/lucaslui/hems/collector/internal/mqtt"
 )
 
 func main() {
-	cfg, err := cfgpkg.LoadConfig()
+	cfg, err := config.LoadConfig()
 	if err != nil {
 		log.Fatalf("config error: %v", err)
 	}
@@ -22,29 +22,31 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	// Captura SIGINT/SIGTERM para shutdown gracioso
+	setupGracefulShutdown(cancel, cfg.Logger)
+
+	if err := broker.EnsureKafkaTopics(ctx, cfg); err != nil {
+		cfg.Logger.Fatalf("kafka ensure topics error: %v", err)
+	}
+
+	producer := broker.NewKafkaProducer(cfg)
+	defer producer.Close(ctx)
+
+	dispatcher := broker.NewKafkaDispatcher(producer, 10_000)
+	defer dispatcher.Stop()
+
+	client := mqtt.BuildMQTTClient(cfg, producer, dispatcher)
+	mqtt.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
+
+	<-ctx.Done()
+	cfg.Logger.Println("collector stopped")
+}
+
+func setupGracefulShutdown(cancel context.CancelFunc, logger *log.Logger) {
 	sigCh := make(chan os.Signal, 1)
 	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		s := <-sigCh
-		cfg.Logger.Printf("\nreceived signal: %v — shutting down...", s)
+		logger.Printf("\nreceived signal: %v — shutting down...", s)
 		cancel()
 	}()
-
-	// Garante tópicos Kafka antes de criar produtores
-	if err := kafkapkg.EnsureKafkaTopics(ctx, cfg); err != nil {
-		cfg.Logger.Fatalf("kafka ensure topics error: %v", err)
-	}
-
-	producer := kafkapkg.NewKafkaProducer(cfg)
-	defer producer.Close(ctx)
-
-	dispatcher := kafkapkg.NewKafkaDispatcher(producer, 10_000) // buffer amplo
-	defer dispatcher.Stop()
-
-	client := mqttpkg.BuildMQTTClient(cfg, producer, dispatcher) // muda assinatura
-	mqttpkg.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
-
-	<-ctx.Done()
-	cfg.Logger.Println("collector stopped")
 }

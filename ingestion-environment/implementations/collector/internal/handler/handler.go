@@ -10,12 +10,12 @@ import (
 	"github.com/segmentio/kafka-go"
 
 	"github.com/lucaslui/hems/collector/internal/config"
-	kafkaSv "github.com/lucaslui/hems/collector/internal/kafka"
+	"github.com/lucaslui/hems/collector/internal/broker"
 	"github.com/lucaslui/hems/collector/internal/model"
 	"github.com/lucaslui/hems/collector/internal/validate"
 )
 
-func HandleMessage(ctx context.Context, cfg *config.Config, prod *kafkaSv.KafkaProducer, disp *kafkaSv.KafkaDispatcher, msg mqtt.Message) {
+func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaProducer, disp *broker.KafkaDispatcher, msg mqtt.Message) {
 	collectedAt := time.Now().UTC()
 	raw := msg.Payload()
 

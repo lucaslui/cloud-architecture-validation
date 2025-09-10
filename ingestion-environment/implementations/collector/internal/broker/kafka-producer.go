@@ -1,4 +1,16 @@
-package kafka
+// Package broker provides Kafka producer implementations for message publishing,
+// including support for main and dead-letter queues (DLQ).
+//
+// KafkaProducer encapsulates two kafka.Writer instances: one for the main topic
+// and another for the DLQ topic. It provides methods to send messages to either
+// topic, as well as to close the underlying writers.
+//
+// Usage:
+//   producer := broker.NewKafkaProducer(cfg)
+//   err := producer.Send(ctx, key, value, headers...)
+//   err := producer.SendDLQ(ctx, key, value, headers...)
+//   producer.Close(ctx)
+package broker
 
 import (
 	"context"
@@ -9,7 +21,6 @@ import (
 	"github.com/lucaslui/hems/collector/internal/config"
 )
 
-// KafkaProducer contém writers para tópico principal e DLQ
 type KafkaProducer struct {
 	main *kafka.Writer
 	dlq  *kafka.Writer

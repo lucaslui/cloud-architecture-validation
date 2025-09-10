@@ -8,10 +8,10 @@ import (
 
 	"github.com/lucaslui/hems/collector/internal/config"
 	"github.com/lucaslui/hems/collector/internal/handler"
-	"github.com/lucaslui/hems/collector/internal/kafka"
+	"github.com/lucaslui/hems/collector/internal/broker"
 )
 
-func BuildMQTTClient(cfg *config.Config, producer *kafka.KafkaProducer, disp *kafka.KafkaDispatcher) mqtt.Client {
+func BuildMQTTClient(cfg *config.Config, producer *broker.KafkaProducer, disp *broker.KafkaDispatcher) mqtt.Client {
 	h := func(_ mqtt.Client, msg mqtt.Message) {
 		handler.HandleMessage(context.Background(), cfg, producer, disp, msg)
 	}
