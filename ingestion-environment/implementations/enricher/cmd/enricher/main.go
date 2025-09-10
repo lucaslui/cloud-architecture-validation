@@ -11,18 +11,18 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/lucaslui/hems/enricher-validator/internal/broker"
 	"github.com/lucaslui/hems/enricher-validator/internal/config"
 	"github.com/lucaslui/hems/enricher-validator/internal/data"
-	"github.com/lucaslui/hems/enricher-validator/internal/broker"
 	"github.com/lucaslui/hems/enricher-validator/internal/processing"
 	kafkasdk "github.com/segmentio/kafka-go"
 )
 
 func main() {
-	cfg := config.Load()
+	cfg := config.LoadConfig()
 
-	log.Printf("[boot] enricher | brokers=%v group=%s in=%s out=%s dlq=%s",
-		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic)
+	log.Printf("[boot] enricher | brokers=%v group=%s in=%s out=%s dlq=%s workers=%d ack_batch_size=%d",
+		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic, cfg.ProcessingWorkers, cfg.AckBatchSize)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -51,17 +51,14 @@ func main() {
 	proc := processing.NewProcessor(cfg, store, writerOut, writerDLQ)
 
 	// 5) pipeline: fetch -> workers(proc) -> commit(batch)
-	const (
-		workers      = 8
-		ackBatchSize = 500
-	)
+
 	msgCh := make(chan kafkasdk.Message, 5000)
 	ackCh := make(chan kafkasdk.Message, 5000)
 
 	// 5.1 workers
 	var wg sync.WaitGroup
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
+	wg.Add(cfg.ProcessingWorkers)
+	for i := 0; i < cfg.ProcessingWorkers; i++ {
 		go func(id int) {
 			defer wg.Done()
 			for m := range msgCh {
@@ -80,10 +77,12 @@ func main() {
 		defer close(doneCommit)
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
-		batch := make([]kafkasdk.Message, 0, ackBatchSize)
+		batch := make([]kafkasdk.Message, 0, cfg.AckBatchSize)
 
 		flush := func() {
-			if len(batch) == 0 { return }
+			if len(batch) == 0 {
+				return
+			}
 			_ = reader.CommitMessages(context.Background(), batch...)
 			batch = batch[:0]
 		}
@@ -91,9 +90,12 @@ func main() {
 		for {
 			select {
 			case m, ok := <-ackCh:
-				if !ok { flush(); return }
+				if !ok {
+					flush()
+					return
+				}
 				batch = append(batch, m)
-				if len(batch) >= ackBatchSize {
+				if len(batch) >= cfg.AckBatchSize {
 					flush()
 				}
 			case <-t.C:
@@ -103,13 +105,13 @@ func main() {
 	}()
 
 	// 5.3 fetch loop
-fetch:
+fetchLoop:
 	for {
 		m, err := reader.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				log.Printf("[shutdown] encerrando consumo")
-				break fetch
+				break fetchLoop
 			}
 			log.Printf("[error] leitura Kafka: %v", err)
 			continue

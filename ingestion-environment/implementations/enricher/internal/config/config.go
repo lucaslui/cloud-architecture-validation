@@ -17,6 +17,9 @@ const (
 	DefaultDLQTopicPartitions = 1
 
 	DefaultContextStoreJSON = "./device-context.json"
+
+	DefaultProcessingWorkers = 8
+	DefaultAckBatchSize      = 500
 )
 
 type Config struct {
@@ -30,6 +33,9 @@ type Config struct {
 	DLQTopicPartitions int
 
 	ContextStorePath string
+
+	AckBatchSize      int
+	ProcessingWorkers int
 }
 
 func envOrDefault(key, def string) string {
@@ -49,7 +55,7 @@ func envOrDefaultInt(key string, def int) int {
 	return def
 }
 
-func Load() Config {
+func LoadConfig() Config {
 	return Config{
 		Brokers:     strings.Split(envOrDefault("KAFKA_BROKERS", DefaultKafkaBrokers), ","),
 		GroupID:     envOrDefault("KAFKA_GROUP_ID", DefaultGroupID),
@@ -61,5 +67,8 @@ func Load() Config {
 		DLQTopicPartitions: envOrDefaultInt("KAFKA_DLQ_TOPIC_PARTITIONS", DefaultDLQTopicPartitions),
 
 		ContextStorePath: envOrDefault("CONTEXT_STORE_PATH", DefaultContextStoreJSON),
+
+		AckBatchSize:      envOrDefaultInt("ACK_BATCH_SIZE", DefaultAckBatchSize),
+		ProcessingWorkers: envOrDefaultInt("PROCESSING_WORKERS", DefaultProcessingWorkers),
 	}
 }
