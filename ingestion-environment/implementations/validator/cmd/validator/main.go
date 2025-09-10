@@ -20,8 +20,9 @@ import (
 func main() {
 	cfg := config.Load()
 
-	log.Printf("[boot] validator | brokers=%v group=%s in=%s out=%s dlq=%s redis=%s ns=%s",
-		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic, cfg.RedisAddr, cfg.RedisNamespace)
+	log.Printf("[boot] validator | brokers=%v group=%s in=%s out=%s dlq=%s redis=%s ns=%s workers=%d ack_batch_size=%d",
+		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic, cfg.RedisAddr, cfg.RedisNamespace,
+		cfg.ProcessingWorkers, cfg.AckBatchSize)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -54,26 +55,22 @@ func main() {
 	proc := processing.NewProcessor(cfg, reg, writerOut, writerDLQ)
 
 	// 4) pipeline: fetch -> workers(proc) -> commits(batch)
-	const (
-		workers      = 8
-		ackBatchSize = 500
-	)
 	msgCh := make(chan kafkasdk.Message, 5000)
 	ackCh := make(chan kafkasdk.Message, 5000)
 
 	// 4.1 workers
 	var wg sync.WaitGroup
-	wg.Add(workers)
-	for i := 0; i < workers; i++ {
+	wg.Add(cfg.ProcessingWorkers)
+	for i := 0; i < cfg.ProcessingWorkers; i++ {
 		go func() {
 			defer wg.Done()
-			for m := range msgCh {
-				lat, _ := proc.Process(ctx, m)
+			for msg := range msgCh {
+				lat, _ := proc.Process(ctx, msg)
 				if lat > 0 {
 					// logs leves (evite spam por msg em produção)
 					// log.Printf("[out] key=%q latency_ms=%.2f", string(m.Key), float64(lat.Milliseconds()))
 				}
-				ackCh <- m // só ack depois de processar/publicar
+				ackCh <- msg // só ack depois de processar/publicar
 			}
 		}()
 	}
@@ -82,7 +79,7 @@ func main() {
 	go func() {
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
-		batch := make([]kafkasdk.Message, 0, ackBatchSize)
+		batch := make([]kafkasdk.Message, 0, cfg.AckBatchSize)
 
 		flush := func() {
 			if len(batch) == 0 {
@@ -100,7 +97,7 @@ func main() {
 					return
 				}
 				batch = append(batch, m)
-				if len(batch) >= ackBatchSize {
+				if len(batch) >= cfg.AckBatchSize {
 					flush()
 				}
 			case <-t.C:
@@ -112,7 +109,7 @@ func main() {
 	// 4.3 fetch loop
 fetchLoop:
 	for {
-		m, err := reader.FetchMessage(ctx)
+		msg, err := reader.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				log.Printf("[shutdown] encerrando consumo")
@@ -123,7 +120,7 @@ fetchLoop:
 		}
 		// log.Printf("[in] partition=%d offset=%d key=%q size=%d ts=%s",
 		// 	m.Partition, m.Offset, string(m.Key), len(m.Value), m.Time.UTC().Format(time.RFC3339))
-		msgCh <- m
+		msgCh <- msg
 	}
 
 	// 5) shutdown ordenado
