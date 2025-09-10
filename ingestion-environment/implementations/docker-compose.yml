@@ -175,6 +175,8 @@ services:
       - REDIS_NAMESPACE=schema
       - REDIS_USE_PUBSUB=true
       - REDIS_INVALIDATE_CHANNEL=schemas:invalidate
+      - PROCESSING_WORKERS=8
+      - ACK_BATCH_SIZE=500
     depends_on:
       collector:
         condition: service_started
@@ -193,6 +195,8 @@ services:
       - KAFKA_OUTPUT_TOPIC=enriched-events-topic
       - KAFKA_DLQ_TOPIC=enriched-events-dlq
       - CONTEXT_STORE_PATH=/app/device-context.json
+      - PROCESSING_WORKERS=8
+      - ACK_BATCH_SIZE=500
     depends_on:
       validator:
         condition: service_started
@@ -211,7 +215,7 @@ services:
       - INFLUX_TOKEN=dev-token
       - INFLUX_ORG=hems
       - INFLUX_BUCKET=hems_timeseries
-      - WORKERS=8
+      - PROCESSING_WORKERS=8
       - ACK_BATCH_SIZE=500
       - KAFKA_MIN_BYTES=10000
       - KAFKA_MAX_BYTES=10000000
