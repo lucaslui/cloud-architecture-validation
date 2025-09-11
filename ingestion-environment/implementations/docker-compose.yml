@@ -169,6 +169,7 @@ services:
       - DISPATCHER_CAPACITY=20000
       - DISPATCHER_MAX_BATCH=2000
       - DISPATCHER_TICK_MS=4
+      - KAFKA_RETENTION_MS=86400000
     depends_on:
       vernemq:
         condition: service_healthy
