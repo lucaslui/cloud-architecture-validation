@@ -19,9 +19,9 @@ func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaPr
 	collectedAt := time.Now().UTC()
 	raw := msg.Payload()
 
-	cfg.Logger.Printf("mqtt rx: topic=%s qos=%d mid=%d retained=%v bytes=%d payload=%s",
-		msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(raw), validate.Truncate(raw, 512),
-	)
+	// cfg.Logger.Printf("mqtt rx: topic=%s qos=%d mid=%d retained=%v bytes=%d payload=%s",
+	// 	msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(raw), validate.Truncate(raw, 512),
+	// )
 
 	env, err := validate.ValidatePayload(raw)
 

@@ -6,14 +6,27 @@ import (
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/lucaslui/hems/collector/internal/config"
-	"github.com/lucaslui/hems/collector/internal/handler"
 	"github.com/lucaslui/hems/collector/internal/broker"
+	"github.com/lucaslui/hems/collector/internal/config"
 )
 
-func BuildMQTTClient(cfg *config.Config, producer *broker.KafkaProducer, disp *broker.KafkaDispatcher) mqtt.Client {
+func BuildMQTTClient(cfg *config.Config, _ *broker.KafkaProducer, _ *broker.KafkaDispatcher, sink chan<- mqtt.Message) mqtt.Client {
 	h := func(_ mqtt.Client, msg mqtt.Message) {
-		handler.HandleMessage(context.Background(), cfg, producer, disp, msg)
+		if cfg.WorkQueueStrategy == "block" && cfg.WorkQueueEnqTimeoutMs > 0 {
+			timer := time.NewTimer(time.Duration(cfg.WorkQueueEnqTimeoutMs) * time.Millisecond)
+			defer timer.Stop()
+			select {
+			case sink <- msg:
+			case <-timer.C:
+				cfg.Logger.Printf("work queue timeout — dropping: topic=%s mid=%d", msg.Topic(), msg.MessageID())
+			}
+			return
+		}
+		select {
+		case sink <- msg:
+		default:
+			cfg.Logger.Printf("work queue full — dropping: topic=%s mid=%d", msg.Topic(), msg.MessageID())
+		}
 	}
 
 	opts := mqtt.NewClientOptions().
@@ -26,7 +39,7 @@ func BuildMQTTClient(cfg *config.Config, producer *broker.KafkaProducer, disp *b
 		SetAutoReconnect(true).
 		SetConnectRetry(true).
 		SetConnectRetryInterval(5 * time.Second).
-		SetMessageChannelDepth(5000)
+		SetMessageChannelDepth(cfg.MQTTChannelDepth)
 
 	if cfg.MQTTUsername != "" {
 		opts.SetUsername(cfg.MQTTUsername)

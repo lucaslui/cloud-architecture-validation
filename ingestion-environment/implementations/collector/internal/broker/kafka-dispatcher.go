@@ -18,24 +18,28 @@ import (
 )
 
 type KafkaDispatcher struct {
-	producer    *KafkaProducer
+	producer     *KafkaProducer
 	inputChannel chan kafka.Message
 	stopChannel  chan struct{}
+	maxBatch     int
+	tick         time.Duration
 }
 
-func NewKafkaDispatcher(prod *KafkaProducer, capacity int) *KafkaDispatcher {
+func NewKafkaDispatcher(prod *KafkaProducer, capacity int, maxBatch int, tick time.Duration) *KafkaDispatcher {
 	d := &KafkaDispatcher{
-		producer:    prod,
+		producer:     prod,
 		inputChannel: make(chan kafka.Message, capacity),
 		stopChannel:  make(chan struct{}),
+		maxBatch:     maxBatch,
+		tick:         tick,
 	}
 	go d.loop()
 	return d
 }
 
 func (d *KafkaDispatcher) loop() {
-	batch := make([]kafka.Message, 0, 2000)
-	t := time.NewTicker(5 * time.Millisecond)
+	batch := make([]kafka.Message, 0, d.maxBatch)
+	t := time.NewTicker(d.tick)
 	defer t.Stop()
 
 	flush := func() {
@@ -50,7 +54,7 @@ func (d *KafkaDispatcher) loop() {
 		select {
 		case m := <-d.inputChannel:
 			batch = append(batch, m)
-			if len(batch) >= 2000 {
+			if len(batch) >= d.maxBatch {
 				flush()
 			}
 		case <-t.C:

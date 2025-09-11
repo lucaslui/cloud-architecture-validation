@@ -1,25 +1,42 @@
-// Package broker provides Kafka producer implementations for message publishing,
-// including support for main and dead-letter queues (DLQ).
-//
-// KafkaProducer encapsulates two kafka.Writer instances: one for the main topic
-// and another for the DLQ topic. It provides methods to send messages to either
-// topic, as well as to close the underlying writers.
-//
-// Usage:
-//   producer := broker.NewKafkaProducer(cfg)
-//   err := producer.Send(ctx, key, value, headers...)
-//   err := producer.SendDLQ(ctx, key, value, headers...)
-//   producer.Close(ctx)
 package broker
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/segmentio/kafka-go"
 
 	"github.com/lucaslui/hems/collector/internal/config"
 )
+
+func parseCompression(s string) kafka.Compression {
+	switch strings.ToLower(s) {
+	case "", "none", "no", "off", "0":
+		return kafka.Compression(0)
+	case "gzip":
+		return kafka.Gzip
+	case "snappy":
+		return kafka.Snappy
+	case "lz4":
+		return kafka.Lz4
+	case "zstd":
+		return kafka.Zstd
+	default:
+		return kafka.Snappy
+	}
+}
+
+func parseAcks(s string) kafka.RequiredAcks {
+	switch strings.ToLower(s) {
+	case "none":
+		return kafka.RequireNone
+	case "all":
+		return kafka.RequireAll
+	default:
+		return kafka.RequireOne
+	}
+}
 
 type KafkaProducer struct {
 	main *kafka.Writer
@@ -30,31 +47,33 @@ func NewKafkaProducer(cfg *config.Config) *KafkaProducer {
 	balancer := &kafka.Hash{}
 
 	main := &kafka.Writer{
-		Addr:         kafka.TCP(cfg.KafkaBrokers...),
-		Topic:        cfg.KafkaTopic,
-		Balancer:     balancer,
+		Addr:     kafka.TCP(cfg.KafkaBrokers...),
+		Topic:    cfg.KafkaTopic,
+		Balancer: balancer,
 
-		BatchSize:    1000,                 // alvo de msgs por batch
-		BatchBytes:   1 << 20,              // ~1MB por batch
-		BatchTimeout: 5 * time.Millisecond, // fecha lote rápido
+		BatchSize:    cfg.KafkaBatchSize,
+		BatchBytes:   cfg.KafkaBatchBytes,
+		BatchTimeout: time.Duration(cfg.KafkaBatchTimeoutMs) * time.Millisecond,
 
-		RequiredAcks: kafka.RequireOne,
+		RequiredAcks: parseAcks(cfg.KafkaRequiredAcks),
+		MaxAttempts:  cfg.KafkaMaxAttempts,
 		Async:        true,
-		Compression:  kafka.Snappy,
+		Compression:  parseCompression(cfg.KafkaCompression),
 	}
 
 	dlq := &kafka.Writer{
-		Addr:         kafka.TCP(cfg.KafkaBrokers...),
-		Topic:        cfg.KafkaDLQTopic,
-		Balancer:     balancer,
+		Addr:     kafka.TCP(cfg.KafkaBrokers...),
+		Topic:    cfg.KafkaDLQTopic,
+		Balancer: balancer,
 
-		BatchSize:    200,
-		BatchBytes:   512 << 10,            // 512KB
+		BatchSize:    max(1, cfg.KafkaBatchSize/5),
+		BatchBytes:   int64(max(1, int(cfg.KafkaBatchBytes)/2)),
 		BatchTimeout: 10 * time.Millisecond,
 
-		RequiredAcks: kafka.RequireOne,
+		RequiredAcks: parseAcks(cfg.KafkaRequiredAcks),
+		MaxAttempts:  cfg.KafkaMaxAttempts,
 		Async:        true,
-		Compression:  kafka.Snappy,
+		Compression:  parseCompression(cfg.KafkaCompression),
 	}
 
 	return &KafkaProducer{main: main, dlq: dlq}
@@ -81,4 +100,9 @@ func (p *KafkaProducer) SendDLQ(ctx context.Context, key, value []byte, headers 
 	})
 }
 
-
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
