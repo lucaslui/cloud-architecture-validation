@@ -43,12 +43,12 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="NumberHomes" elementType="Argument">
             <stringProp name="Argument.name">NumberHomes</stringProp>
-            <stringProp name="Argument.value">5</stringProp>
+            <stringProp name="Argument.value">50</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="NumberMessages" elementType="Argument">
             <stringProp name="Argument.name">NumberMessages</stringProp>
-            <stringProp name="Argument.value">100</stringProp>
+            <stringProp name="Argument.value">10</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="PayloadSize" elementType="Argument">
@@ -64,7 +64,7 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Infrastructure Parameters">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Infrastructure Parameters" enabled="true">
         <collectionProp name="Arguments.arguments">
           <elementProp name="RampUpTimeSec" elementType="Argument">
             <stringProp name="Argument.name">RampUpTimeSec</stringProp>
@@ -228,7 +228,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
