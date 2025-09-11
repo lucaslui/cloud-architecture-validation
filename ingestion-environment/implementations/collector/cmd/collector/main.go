@@ -2,7 +2,6 @@ package main
 
 import (
 	"context"
-	"log"
 	"sync"
 	"time"
 
@@ -16,22 +15,26 @@ import (
 )
 
 func main() {
+	logger := config.GetLogger()
+
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("[error] config error: %v", err)
+		logger.Fatalf("[error] configuração inválida: %v", err)
 	}
+
+	logger.Printf("[info] collector configs loaded:%s", cfg)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	runtime.SetupGracefulShutdown(cancel, cfg.Logger)
+	runtime.SetupGracefulShutdown(cancel, logger)
 
-	if err := broker.EnsureKafkaTopics(ctx, cfg); err != nil {
-		cfg.Logger.Fatalf("kafka ensure topics error: %v", err)
+	if err := broker.EnsureKafkaTopics(ctx, cfg, logger); err != nil {
+		logger.Fatalf("[error] kafka ensure topics error: %v", err)
 	}
 
 	producer := broker.NewKafkaProducer(cfg)
-	defer producer.Close(ctx)
+	defer producer.Close()
 
 	disp := broker.NewKafkaDispatcher(producer, cfg.DispatcherCapacity, cfg.DispatcherMaxBatch, time.Duration(cfg.DispatcherTickMs)*time.Millisecond)
 	defer disp.Stop()
@@ -46,7 +49,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case msg := <-workCh:
-				handler.HandleMessage(ctx, cfg, producer, disp, msg)
+				handler.HandleMessage(ctx, cfg, logger, producer, disp, msg)
 			}
 		}
 	}
@@ -55,11 +58,9 @@ func main() {
 		go workerFn(i)
 	}
 
-	cfg.Logger.Printf("[boot] collector workers=%d queue=%d", cfg.ProcessingWorkers, cfg.WorkerQueueSize)
-
 	// Cliente MQTT + reconexão com backoff (bloqueia até conectar)
-	client := mqtt.BuildMQTTClient(cfg, producer, disp, workCh)
-	mqtt.ConnectWithBackoff(ctx, cfg, client, 2*time.Second, 30*time.Second)
+	client := mqtt.BuildMQTTClient(cfg, logger, workCh)
+	mqtt.ConnectWithBackoff(ctx, logger, client, 2*time.Second, 30*time.Second)
 
 	<-ctx.Done()
 	client.Disconnect(250)
@@ -68,7 +69,7 @@ func main() {
 	select {
 	case <-doneCh:
 	case <-time.After(5 * time.Second):
-		cfg.Logger.Println("timeout waiting workers — continuing shutdown")
+		logger.Println("[error] timeout waiting workers — continuing shutdown")
 	}
-	cfg.Logger.Println("collector stopped")
+	logger.Println("[info] collector stopped")
 }

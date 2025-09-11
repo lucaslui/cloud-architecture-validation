@@ -79,7 +79,7 @@ func NewKafkaProducer(cfg *config.Config) *KafkaProducer {
 	return &KafkaProducer{main: main, dlq: dlq}
 }
 
-func (p *KafkaProducer) Close(ctx context.Context) {
+func (p *KafkaProducer) Close() {
 	_ = p.main.Close()
 	_ = p.dlq.Close()
 }

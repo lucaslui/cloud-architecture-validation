@@ -3,6 +3,7 @@ package handler
 import (
 	"context"
 	"encoding/json"
+	"log"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
@@ -15,7 +16,7 @@ import (
 	"github.com/lucaslui/hems/collector/internal/validate"
 )
 
-func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaProducer, disp *broker.KafkaDispatcher, msg mqtt.Message) {
+func HandleMessage(ctx context.Context, cfg *config.Config, logger *log.Logger, prod *broker.KafkaProducer, disp *broker.KafkaDispatcher, msg mqtt.Message) {
 	collectedAt := time.Now().UTC()
 	raw := msg.Payload()
 
@@ -26,7 +27,7 @@ func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaPr
 	env, err := validate.ValidatePayload(raw)
 
 	if err != nil {
-		cfg.Logger.Printf("invalid payload — sending to DLQ: %v | message: %s", err, validate.Truncate(raw, 512))
+		logger.Printf("[error] invalid payload — sending to DLQ: %v | message: %s", err, validate.Truncate(raw, 512))
 		dlq := map[string]any{
 			"error":      err.Error(),
 			"original":   json.RawMessage(raw),
@@ -35,9 +36,9 @@ func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaPr
 		}
 		buf, _ := json.Marshal(dlq)
 		if err := prod.SendDLQ(ctx, []byte("invalid"), buf); err != nil {
-			cfg.Logger.Printf("kafka write error (dlq): %v", err)
+			logger.Printf("[error] kafka write error (dlq): %v", err)
 		} else {
-			cfg.Logger.Printf("dlq OK: topic=%s bytes=%d", cfg.KafkaDLQTopic, len(buf))
+			logger.Printf("[info] dlq OK: topic=%s bytes=%d", cfg.KafkaDLQTopic, len(buf))
 		}
 		return
 	}
@@ -53,7 +54,7 @@ func HandleMessage(ctx context.Context, cfg *config.Config, prod *broker.KafkaPr
 	value, err := json.Marshal(out)
 
 	if err != nil {
-		cfg.Logger.Printf("json marshal error: %v", err)
+		logger.Printf("[error] json marshal error: %v", err)
 		return
 	}
 

@@ -2,6 +2,8 @@ package broker
 
 import (
 	"context"
+	"fmt"
+	"log"
 	"net"
 	"strconv"
 
@@ -10,9 +12,10 @@ import (
 	"github.com/lucaslui/hems/collector/internal/config"
 )
 
-func EnsureKafkaTopics(ctx context.Context, cfg *config.Config) error {
+func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logger) error {
 	bootstrap := cfg.KafkaBrokers[0]
-	cfg.Logger.Printf("kafka: ensuring topics on bootstrap %s", bootstrap)
+
+	logger.Printf("[info] kafka ensuring topics on bootstrap %s", bootstrap)
 
 	conn, err := kafka.DialContext(ctx, "tcp", bootstrap)
 	if err != nil {
@@ -37,7 +40,7 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config) error {
 	defer ctrlConn.Close()
 
 	if !exists(cfg.KafkaTopic) {
-		cfg.Logger.Printf("kafka: creating topic %s (partitions=%d rf=%d)", cfg.KafkaTopic, cfg.KafkaTopicPartitions, cfg.KafkaReplicationFactor)
+		logger.Printf("[info] kafka creating topic %s (partitions=%d rf=%d)", cfg.KafkaTopic, cfg.KafkaTopicPartitions, cfg.KafkaReplicationFactor)
 		if err := ctrlConn.CreateTopics(kafka.TopicConfig{
 			Topic:             cfg.KafkaTopic,
 			NumPartitions:     cfg.KafkaTopicPartitions,
@@ -45,22 +48,22 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config) error {
 			ConfigEntries: []kafka.ConfigEntry{
 				{
 					ConfigName:  "compression.type",
-					ConfigValue: "producer",
+					ConfigValue: cfg.KafkaCompression,
 				},
 				{
 					ConfigName:  "retention.ms",
-					ConfigValue: "104800000",
+					ConfigValue: fmt.Sprintf("%d", cfg.KafkaRetentionMs),
 				},
 			},
 		}); err != nil {
 			return err
 		}
 	} else {
-		cfg.Logger.Printf("kafka: topic %s already exists — skipping", cfg.KafkaTopic)
+		logger.Printf("[info] kafka topic %s already exists — skipping", cfg.KafkaTopic)
 	}
 
 	if !exists(cfg.KafkaDLQTopic) {
-		cfg.Logger.Printf("kafka: creating topic %s (partitions=%d rf=%d)", cfg.KafkaDLQTopic, cfg.KafkaDLQPartitions, cfg.KafkaReplicationFactor)
+		logger.Printf("[info] kafka creating topic %s (partitions=%d rf=%d)", cfg.KafkaDLQTopic, cfg.KafkaDLQPartitions, cfg.KafkaReplicationFactor)
 		if err := ctrlConn.CreateTopics(kafka.TopicConfig{
 			Topic:             cfg.KafkaDLQTopic,
 			NumPartitions:     cfg.KafkaDLQPartitions,
@@ -69,7 +72,7 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config) error {
 			return err
 		}
 	} else {
-		cfg.Logger.Printf("kafka: topic %s already exists — skipping", cfg.KafkaDLQTopic)
+		logger.Printf("[info] kafka topic %s already exists — skipping", cfg.KafkaDLQTopic)
 	}
 
 	return nil

@@ -2,15 +2,15 @@ package mqtt
 
 import (
 	"context"
+	"log"
 	"time"
 
 	mqtt "github.com/eclipse/paho.mqtt.golang"
 
-	"github.com/lucaslui/hems/collector/internal/broker"
 	"github.com/lucaslui/hems/collector/internal/config"
 )
 
-func BuildMQTTClient(cfg *config.Config, _ *broker.KafkaProducer, _ *broker.KafkaDispatcher, sink chan<- mqtt.Message) mqtt.Client {
+func BuildMQTTClient(cfg *config.Config, logger *log.Logger, sink chan<- mqtt.Message) mqtt.Client {
 	h := func(_ mqtt.Client, msg mqtt.Message) {
 		if cfg.WorkQueueStrategy == "block" && cfg.WorkQueueEnqTimeoutMs > 0 {
 			timer := time.NewTimer(time.Duration(cfg.WorkQueueEnqTimeoutMs) * time.Millisecond)
@@ -18,14 +18,14 @@ func BuildMQTTClient(cfg *config.Config, _ *broker.KafkaProducer, _ *broker.Kafk
 			select {
 			case sink <- msg:
 			case <-timer.C:
-				cfg.Logger.Printf("work queue timeout — dropping: topic=%s mid=%d", msg.Topic(), msg.MessageID())
+				logger.Printf("work queue timeout — dropping: topic=%s mid=%d", msg.Topic(), msg.MessageID())
 			}
 			return
 		}
 		select {
 		case sink <- msg:
 		default:
-			cfg.Logger.Printf("work queue full — dropping: topic=%s mid=%d", msg.Topic(), msg.MessageID())
+			logger.Printf("work queue full — dropping: topic=%s mid=%d", msg.Topic(), msg.MessageID())
 		}
 	}
 
@@ -49,30 +49,30 @@ func BuildMQTTClient(cfg *config.Config, _ *broker.KafkaProducer, _ *broker.Kafk
 	}
 
 	opts.OnConnect = func(c mqtt.Client) {
-		cfg.Logger.Printf("connected to VerneMQ: %s", cfg.MQTTBrokerURL)
+		logger.Printf("[info] mqtt client connected to VerneMQ: %s", cfg.MQTTBrokerURL)
 		if token := c.Subscribe(cfg.MQTTTopic, cfg.MQTTQoS, h); token.Wait() && token.Error() != nil {
-			cfg.Logger.Printf("mqtt subscribe error: %v", token.Error())
+			logger.Printf("[error] mqtt client subscribe error: %v", token.Error())
 		} else {
-			cfg.Logger.Printf("subscribed to topic: %s (QoS %d)", cfg.MQTTTopic, cfg.MQTTQoS)
+			logger.Printf("[info] mqtt client subscribed to topic: %s (QoS %d)", cfg.MQTTTopic, cfg.MQTTQoS)
 		}
 	}
-	opts.OnConnectionLost = func(c mqtt.Client, err error) { cfg.Logger.Printf("mqtt connection lost: %v", err) }
+	opts.OnConnectionLost = func(c mqtt.Client, err error) { logger.Printf("[error] mqtt client connection lost: %v", err) }
 
 	return mqtt.NewClient(opts)
 }
 
-func ConnectWithBackoff(ctx context.Context, cfg *config.Config, client mqtt.Client, start, max time.Duration) {
+func ConnectWithBackoff(ctx context.Context, logger *log.Logger, client mqtt.Client, start, max time.Duration) {
 	backoff := start
 	for {
 		if token := client.Connect(); token.Wait() && token.Error() != nil {
-			cfg.Logger.Printf("mqtt connect error: %v; retrying in %s", token.Error(), backoff)
+			logger.Printf("[error] mqtt connect error: %v; retrying in %s", token.Error(), backoff)
 			select {
 			case <-time.After(backoff):
 				if backoff < max {
 					backoff *= 2
 				}
 			case <-ctx.Done():
-				cfg.Logger.Println("context cancelled before mqtt connect")
+				logger.Println("[error] context cancelled before mqtt connect")
 				return
 			}
 			continue
