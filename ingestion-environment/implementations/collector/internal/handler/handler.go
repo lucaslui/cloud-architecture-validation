@@ -16,7 +16,7 @@ import (
 	"github.com/lucaslui/hems/collector/internal/validate"
 )
 
-func HandleMessage(ctx context.Context, cfg *config.Config, logger *log.Logger, prod *broker.KafkaProducer, disp *broker.KafkaDispatcher, msg mqtt.Message) {
+func HandleMessage(ctx context.Context, cfg *config.Config, logger *log.Logger, prod *broker.KafkaClient, disp *broker.KafkaDispatcher, msg mqtt.Message) {
 	collectedAt := time.Now().UTC()
 	raw := msg.Payload()
 

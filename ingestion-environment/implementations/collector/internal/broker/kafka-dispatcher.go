@@ -18,16 +18,16 @@ import (
 )
 
 type KafkaDispatcher struct {
-	producer     *KafkaProducer
+	kafkaClient     *KafkaClient
 	inputChannel chan kafka.Message
 	stopChannel  chan struct{}
 	maxBatch     int
 	tick         time.Duration
 }
 
-func NewKafkaDispatcher(prod *KafkaProducer, capacity int, maxBatch int, tick time.Duration) *KafkaDispatcher {
+func NewKafkaDispatcher(kafkaClient *KafkaClient, capacity int, maxBatch int, tick time.Duration) *KafkaDispatcher {
 	d := &KafkaDispatcher{
-		producer:     prod,
+		kafkaClient:     kafkaClient,
 		inputChannel: make(chan kafka.Message, capacity),
 		stopChannel:  make(chan struct{}),
 		maxBatch:     maxBatch,
@@ -46,7 +46,7 @@ func (d *KafkaDispatcher) loop() {
 		if len(batch) == 0 {
 			return
 		}
-		_ = d.producer.main.WriteMessages(context.Background(), batch...) // já está Async+batch
+		_ = d.kafkaClient.MainProducer.WriteMessages(context.Background(), batch...) // já está Async+batch
 		batch = batch[:0]
 	}
 

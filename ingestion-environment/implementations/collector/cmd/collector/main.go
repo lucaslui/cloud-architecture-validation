@@ -33,10 +33,10 @@ func main() {
 		logger.Fatalf("[error] kafka ensure topics error: %v", err)
 	}
 
-	producer := broker.NewKafkaProducer(cfg)
-	defer producer.Close()
+	kafkaClient := broker.NewKafkaClient(cfg)
+	defer kafkaClient.Close()
 
-	disp := broker.NewKafkaDispatcher(producer, cfg.DispatcherCapacity, cfg.DispatcherMaxBatch, time.Duration(cfg.DispatcherTickMs)*time.Millisecond)
+	disp := broker.NewKafkaDispatcher(kafkaClient, cfg.DispatcherCapacity, cfg.DispatcherMaxBatch, time.Duration(cfg.DispatcherTickMs)*time.Millisecond)
 	defer disp.Stop()
 
 	// ===== Pool de workers para processar mensagens MQTT =====
@@ -49,7 +49,7 @@ func main() {
 			case <-ctx.Done():
 				return
 			case msg := <-workCh:
-				handler.HandleMessage(ctx, cfg, logger, producer, disp, msg)
+				handler.HandleMessage(ctx, cfg, logger, kafkaClient, disp, msg)
 			}
 		}
 	}
