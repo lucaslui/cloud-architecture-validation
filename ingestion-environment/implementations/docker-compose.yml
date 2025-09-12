@@ -182,16 +182,41 @@ services:
     restart: unless-stopped
     environment:
       - KAFKA_BROKERS=kafka:9092
-      - KAFKA_INPUT_TOPIC=raw-events-topic
-      - KAFKA_OUTPUT_TOPIC=validated-events-topic
+      - KAFKA_GROUP_ID=validator
+      - KAFKA_READER_TOPIC=raw-events-topic
+      - KAFKA_WRITER_TOPIC=validated-events-topic
       - KAFKA_DLQ_TOPIC=validated-events-dlq
+      - KAFKA_TOPIC_PARTITIONS=6
+      - KAFKA_DLQ_PARTITIONS=1
+      - KAFKA_RETENTION_MS=86400000
+      - KAFKA_COMPRESSION=snappy
+      - KAFKA_REPLICATION_FACTOR=1
+      - KAFKA_ACK_BATCH_SIZE=500
+       # =============================
+      - KAFKA_WRITER_BATCH_SIZE=2000
+      - KAFKA_WRITER_BATCH_BYTES=1048576
+      - KAFKA_WRITER_BATCH_TIMEOUT_MS=5
+      - KAFKA_WRITER_REQUIRED_ACKS=one
+      - KAFKA_WRITER_MAX_ATTEMPTS=5
+      # =============================
+      - KAFKA_READER_MIN_BYTES=10000
+      - KAFKA_READER_MAX_BYTES=1000000
+      - KAFKA_READER_MAX_WAIT_MS=200
+      - KAFKA_READER_QUEUE_CAPACITY=10000
+      - KAFKA_READER_READ_LAG_INTERVAL_MS=10000
+      - KAFKA_READER_SESSION_TIMEOUT_MS=30000
+      - KAFKA_READER_HEARTBEAT_INTERVAL_MS=10000
+      - KAFKA_READER_REBALANCE_TIMEOUT_MS=60000
+      - KAFKA_READER_READ_BACKOFF_MIN_MS=100
+      - KAFKA_READER_READ_BACKOFF_MAX_MS=1000
+      # =============================
+      - PROCESSING_WORKERS=8
+      # =============================
       - REDIS_ADDR=redis:6379
       - REDIS_DB=0
       - REDIS_NAMESPACE=schema
       - REDIS_USE_PUBSUB=true
       - REDIS_INVALIDATE_CHANNEL=schemas:invalidate
-      - PROCESSING_WORKERS=8
-      - ACK_BATCH_SIZE=500
     depends_on:
       collector:
         condition: service_started
