@@ -46,14 +46,8 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logg
 			NumPartitions:     cfg.KafkaTopicPartitions,
 			ReplicationFactor: cfg.KafkaReplicationFactor,
 			ConfigEntries: []kafka.ConfigEntry{
-				{
-					ConfigName:  "compression.type",
-					ConfigValue: cfg.KafkaCompression,
-				},
-				{
-					ConfigName:  "retention.ms",
-					ConfigValue: fmt.Sprintf("%d", cfg.KafkaRetentionMs),
-				},
+				{ConfigName: "compression.type", ConfigValue: cfg.KafkaCompression},
+				{ConfigName: "retention.ms", ConfigValue: fmt.Sprintf("%d", cfg.KafkaRetentionMs)},
 			},
 		}); err != nil {
 			return err
@@ -68,6 +62,10 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logg
 			Topic:             cfg.KafkaDLQTopic,
 			NumPartitions:     cfg.KafkaDLQPartitions,
 			ReplicationFactor: cfg.KafkaReplicationFactor,
+			ConfigEntries: []kafka.ConfigEntry{
+				{ConfigName: "compression.type", ConfigValue: cfg.KafkaCompression},
+				{ConfigName: "retention.ms", ConfigValue: fmt.Sprintf("%d", cfg.KafkaRetentionMs)},
+			},
 		}); err != nil {
 			return err
 		}
