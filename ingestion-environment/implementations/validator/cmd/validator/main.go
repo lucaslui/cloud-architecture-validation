@@ -10,41 +10,32 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lucaslui/hems/validator/internal/config"
 	"github.com/lucaslui/hems/validator/internal/broker"
+	"github.com/lucaslui/hems/validator/internal/config"
 	"github.com/lucaslui/hems/validator/internal/processing"
 	"github.com/lucaslui/hems/validator/internal/registry"
 	kafkasdk "github.com/segmentio/kafka-go"
 )
 
 func main() {
-	cfg := config.Load()
+	logger := config.GetLogger()
 
-	log.Printf("[boot] validator | brokers=%v group=%s in=%s out=%s dlq=%s redis=%s ns=%s workers=%d ack_batch_size=%d",
-		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic, cfg.RedisAddr, cfg.RedisNamespace,
-		cfg.ProcessingWorkers, cfg.AckBatchSize)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("[boot] configuração inválida: %v", err)
+	}
+
+	log.Printf("[info] validator configs loaded:%s", cfg)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// 1) garantir tópicos
-	ensureCtx, ensureCancel := context.WithTimeout(ctx, 15*time.Second)
-	broker.EnsureTopics(ensureCtx, broker.EnsureTopicsArgs{
-		Brokers: cfg.Brokers, InputTopic: cfg.InputTopic,
-		OutputTopic: cfg.OutputTopic, OutTopicPartitions: cfg.OutTopicPartitions,
-		DLQTopic: cfg.DLQTopic, DLQTopicPartitions: cfg.DLQTopicPartitions,
-	})
-	ensureCancel()
+	if err := broker.EnsureKafkaTopics(ctx, cfg, logger); err != nil {
+		logger.Fatalf("[error] kafka ensure topics error: %v", err)
+	}
 
 	// 2) construir reader/writers
-	reader := broker.NewReader(cfg)
-	defer reader.Close()
-
-	writerOut := broker.NewWriter(cfg.Brokers, cfg.OutputTopic)
-	defer writerOut.Close()
-
-	writerDLQ := broker.NewWriter(cfg.Brokers, cfg.DLQTopic)
-	defer writerDLQ.Close()
+	kafkaClient := broker.NewKafkaClient(cfg)
 
 	// 3) registry + processor
 	reg := registry.NewRedisRegistry(registry.RedisOpts{
@@ -52,7 +43,7 @@ func main() {
 		Namespace: cfg.RedisNamespace, InvalidateChannel: cfg.RedisInvalidateChan,
 		UsePubSub: cfg.RedisUsePubSub, Timeout: 5 * time.Second,
 	})
-	proc := processing.NewProcessor(cfg, reg, writerOut, writerDLQ)
+	proc := processing.NewProcessor(cfg, reg, kafkaClient.MainProducer, kafkaClient.DQLProducer)
 
 	// 4) pipeline: fetch -> workers(proc) -> commits(batch)
 	msgCh := make(chan kafkasdk.Message, 5000)
@@ -79,13 +70,13 @@ func main() {
 	go func() {
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
-		batch := make([]kafkasdk.Message, 0, cfg.AckBatchSize)
+		batch := make([]kafkasdk.Message, 0, cfg.KafkaAckBatchSize)
 
 		flush := func() {
 			if len(batch) == 0 {
 				return
 			}
-			_ = reader.CommitMessages(context.Background(), batch...)
+			_ = kafkaClient.Consumer.CommitMessages(context.Background(), batch...)
 			batch = batch[:0]
 		}
 
@@ -97,7 +88,7 @@ func main() {
 					return
 				}
 				batch = append(batch, m)
-				if len(batch) >= cfg.AckBatchSize {
+				if len(batch) >= cfg.KafkaAckBatchSize {
 					flush()
 				}
 			case <-t.C:
@@ -109,7 +100,7 @@ func main() {
 	// 4.3 fetch loop
 fetchLoop:
 	for {
-		msg, err := reader.FetchMessage(ctx)
+		msg, err := kafkaClient.Consumer.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				log.Printf("[shutdown] encerrando consumo")

@@ -5,35 +5,35 @@ import (
 	"time"
 )
 
-type InboundEnvelope struct {
-	DeviceID        string           `json:"deviceId"`
-	DeviceType      string           `json:"deviceType"`
-	EventType       string           `json:"eventType"`
-	SchemaVersion   string           `json:"schemaVersion"`
-	Timestamp       *time.Time       `json:"timestamp"`
-	Payload         json.RawMessage  `json:"payload"`
-	InboundMetadata *InboundMetadata `json:"metadata"`
+type InboundValidatorEnvelope struct {
+	DeviceID        string                    `json:"deviceId"`
+	DeviceType      string                    `json:"deviceType"`
+	EventType       string                    `json:"eventType"`
+	SchemaVersion   string                    `json:"schemaVersion"`
+	Timestamp       *time.Time                `json:"timestamp"`
+	Payload         json.RawMessage           `json:"payload"`
+	InboundMetadata *InboundValidatorMetadata `json:"metadata"`
 }
 
-type InboundMetadata struct {
+type InboundValidatorMetadata struct {
 	EventID     string    `json:"eventId"`
 	CollectedAt time.Time `json:"collectedAt"`
 }
 
-type OutboundEnvelope struct {
-	InboundEnvelope
-	Metadata OutboundMetadata `json:"metadata"`
+type OutboundValidatorEnvelope struct {
+	InboundValidatorEnvelope
+	Metadata OutboundValidatorMetadata `json:"metadata"`
 }
 
-type OutboundMetadata struct {
+type OutboundValidatorMetadata struct {
 	EventID     string    `json:"eventId"`
 	CollectedAt time.Time `json:"collectedAt"`
 	ValidatedAt time.Time `json:"validatedAt"`
 }
 
-type OutboundDLQEnvelope struct {
-	InboundEnvelope
-	Error    string           `json:"error"`
-	Stage    string           `json:"stage"`
-	Metadata OutboundMetadata `json:"metadata"`
+type OutboundValidatorDLQEnvelope struct {
+	InboundValidatorEnvelope
+	Error    string                    `json:"error"`
+	Stage    string                    `json:"stage"`
+	Metadata OutboundValidatorMetadata `json:"metadata"`
 }
