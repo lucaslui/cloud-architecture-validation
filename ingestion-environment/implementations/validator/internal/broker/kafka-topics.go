@@ -38,10 +38,10 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logg
 	}
 	defer ctrlConn.Close()
 
-	if !exists(cfg.KafkaInputTopic) {
-		logger.Printf("[info] kafka creating input topic %s (partitions=%d rf=%d)", cfg.KafkaInputTopic, cfg.KafkaTopicPartitions, cfg.KafkaReplicationFactor)
+	if !exists(cfg.KafkaReaderTopic) {
+		logger.Printf("[info] kafka creating input topic %s (partitions=%d rf=%d)", cfg.KafkaReaderTopic, cfg.KafkaTopicPartitions, cfg.KafkaReplicationFactor)
 		if err := ctrlConn.CreateTopics(kafka.TopicConfig{
-			Topic:             cfg.KafkaInputTopic,
+			Topic:             cfg.KafkaReaderTopic,
 			NumPartitions:     cfg.KafkaTopicPartitions,
 			ReplicationFactor: cfg.KafkaReplicationFactor,
 			ConfigEntries: []kafka.ConfigEntry{
@@ -52,13 +52,13 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logg
 			return err
 		}
 	} else {
-		logger.Printf("[info] kafka input topic %s already exists — skipping", cfg.KafkaInputTopic)
+		logger.Printf("[info] kafka input topic %s already exists — skipping", cfg.KafkaReaderTopic)
 	}
 
-	if !exists(cfg.KafkaOutputTopic) {
-		logger.Printf("[info] kafka creating output topic %s (partitions=%d rf=%d)", cfg.KafkaOutputTopic, cfg.KafkaTopicPartitions, cfg.KafkaReplicationFactor)
+	if !exists(cfg.KafkaWriterTopic) {
+		logger.Printf("[info] kafka creating output topic %s (partitions=%d rf=%d)", cfg.KafkaWriterTopic, cfg.KafkaTopicPartitions, cfg.KafkaReplicationFactor)
 		if err := ctrlConn.CreateTopics(kafka.TopicConfig{
-			Topic:             cfg.KafkaOutputTopic,
+			Topic:             cfg.KafkaWriterTopic,
 			NumPartitions:     cfg.KafkaTopicPartitions,
 			ReplicationFactor: cfg.KafkaReplicationFactor,
 			ConfigEntries: []kafka.ConfigEntry{
@@ -69,7 +69,7 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logg
 			return err
 		}
 	} else {
-		logger.Printf("[info] kafka output topic %s already exists — skipping", cfg.KafkaOutputTopic)
+		logger.Printf("[info] kafka output topic %s already exists — skipping", cfg.KafkaWriterTopic)
 	}
 
 	if !exists(cfg.KafkaDLQTopic) {

@@ -12,8 +12,8 @@ import (
 type Config struct {
 	KafkaBrokers           []string
 	KafkaGroupID           string
-	KafkaInputTopic        string
-	KafkaOutputTopic       string
+	KafkaReaderTopic       string
+	KafkaWriterTopic       string
 	KafkaDLQTopic          string
 	KafkaTopicPartitions   int
 	KafkaDLQPartitions     int
@@ -95,8 +95,8 @@ Redis:
 `,
 		c.KafkaBrokers,
 		c.KafkaGroupID,
-		c.KafkaInputTopic,
-		c.KafkaOutputTopic,
+		c.KafkaReaderTopic,
+		c.KafkaWriterTopic,
 		c.KafkaDLQTopic,
 		c.KafkaTopicPartitions,
 		c.KafkaDLQPartitions,
@@ -187,6 +187,19 @@ func getRequiredBool(key string, errs *errList) bool {
 	}
 }
 
+func ensureOneOf(key, val string, allowed []string, errs *errList) {
+	ok := false
+	for _, a := range allowed {
+		if val == a {
+			ok = true
+			break
+		}
+	}
+	if !ok {
+		errs.addf("%s inválido (permitidos: %s): %q", key, strings.Join(allowed, ", "), val)
+	}
+}
+
 func parseBrokers(list string, errs *errList) []string {
 	var out []string
 	if list == "" {
@@ -203,26 +216,25 @@ func parseBrokers(list string, errs *errList) []string {
 	return out
 }
 
-
 func LoadConfig() (*Config, error) {
 	var errs errList
 
 	kafkaBrokers := parseBrokers(getRequired("KAFKA_BROKERS", &errs), &errs)
 	kafkaGroupID := getRequired("KAFKA_GROUP_ID", &errs)
-	kafkaInputTopic := getRequired("KAFKA_INPUT_TOPIC", &errs)
-	kafkaOutputTopic := getRequired("KAFKA_OUTPUT_TOPIC", &errs)
+	kafkaReaderTopic := getRequired("KAFKA_READER_TOPIC", &errs)
+	kafkaWriterTopic := getRequired("KAFKA_WRITER_TOPIC", &errs)
 	kafkaDLQTopic := getRequired("KAFKA_DLQ_TOPIC", &errs)
 	kafkaTopicPartitions := getRequiredInt("KAFKA_TOPIC_PARTITIONS", &errs)
-	kafkaDLQPartitions := getRequiredInt("KAFKA_DLQ_TOPIC_PARTITIONS", &errs)
-	kafkaRetentionMs := getRequiredInt64("KAFKA_RETENTION_MS", &errs)
+	kafkaDLQPartitions := getRequiredInt("KAFKA_DLQ_PARTITIONS", &errs)
 	kafkaCompression := getRequired("KAFKA_COMPRESSION", &errs)
+	kafkaRetentionMs := getRequiredInt64("KAFKA_RETENTION_MS", &errs)
 	kafkaReplicationFactor := getRequiredInt("KAFKA_REPLICATION_FACTOR", &errs)
 	kafkaAckBatchSize := getRequiredInt("KAFKA_ACK_BATCH_SIZE", &errs)
 
 	kafkaWriterBatchSize := getRequiredInt("KAFKA_WRITER_BATCH_SIZE", &errs)
 	kafkaWriterBatchBytes := getRequiredInt("KAFKA_WRITER_BATCH_BYTES", &errs)
 	kafkaWriterBatchTimeoutMs := getRequiredInt("KAFKA_WRITER_BATCH_TIMEOUT_MS", &errs)
-	kafkaWriterRequiredAcks := getRequiredInt("KAFKA_WRITER_REQUIRED_ACKS", &errs)
+	kafkaWriterRequiredAcks := getRequired("KAFKA_WRITER_REQUIRED_ACKS", &errs)
 	kafkaWriterMaxAttempts := getRequiredInt("KAFKA_WRITER_MAX_ATTEMPTS", &errs)
 
 	kafkaReaderMinBytes := getRequiredInt("KAFKA_READER_MIN_BYTES", &errs)
@@ -245,16 +257,19 @@ func LoadConfig() (*Config, error) {
 	redisInvalidateChan := getRequired("REDIS_INVALIDATE_CHANNEL", &errs)
 	redisDB := getRequiredInt("REDIS_DB", &errs)
 
+	ensureOneOf("KAFKA_COMPRESSION", kafkaCompression, []string{"none", "gzip", "snappy", "lz4", "zstd"}, &errs)
+	ensureOneOf("KAFKA_WRITER_REQUIRED_ACKS", kafkaWriterRequiredAcks, []string{"none", "one", "all"}, &errs)
+
 	if len(kafkaBrokers) == 0 {
 		errs.add("KAFKA_BROKERS deve ter ao menos 1 broker")
 	}
 	if kafkaGroupID == "" {
 		errs.add("KAFKA_GROUP_ID não pode ser vazio")
 	}
-	if kafkaInputTopic == "" {
+	if kafkaReaderTopic == "" {
 		errs.add("KAFKA_INPUT_TOPIC não pode ser vazio")
 	}
-	if kafkaOutputTopic == "" {
+	if kafkaWriterTopic == "" {
 		errs.add("KAFKA_OUTPUT_TOPIC não pode ser vazio")
 	}
 	if kafkaDLQTopic == "" {
@@ -272,6 +287,9 @@ func LoadConfig() (*Config, error) {
 	if kafkaReplicationFactor <= 0 {
 		errs.add("KAFKA_REPLICATION_FACTOR deve ser > 0")
 	}
+	if kafkaReplicationFactor > len(kafkaBrokers) {
+		errs.add("KAFKA_REPLICATION_FACTOR não pode ser maior que o número de brokers em KAFKA_BROKERS")
+	}
 	if kafkaAckBatchSize <= 0 {
 		errs.add("KAFKA_ACK_BATCH_SIZE deve ser > 0")
 	}
@@ -283,9 +301,6 @@ func LoadConfig() (*Config, error) {
 	}
 	if kafkaWriterBatchTimeoutMs <= 0 {
 		errs.add("KAFKA_WRITER_BATCH_TIMEOUT_MS deve ser > 0")
-	}
-	if kafkaWriterRequiredAcks < -1 {
-		errs.add("KAFKA_WRITER_REQUIRED_ACKS deve ser -1, 0, 1 ou mais")
 	}
 	if kafkaWriterMaxAttempts <= 0 {
 		errs.add("KAFKA_WRITER_MAX_ATTEMPTS deve ser > 0")
@@ -337,8 +352,8 @@ func LoadConfig() (*Config, error) {
 	return &Config{
 		KafkaBrokers:           kafkaBrokers,
 		KafkaGroupID:           kafkaGroupID,
-		KafkaInputTopic:        kafkaInputTopic,
-		KafkaOutputTopic:       kafkaOutputTopic,
+		KafkaReaderTopic:       kafkaReaderTopic,
+		KafkaWriterTopic:       kafkaWriterTopic,
 		KafkaDLQTopic:          kafkaDLQTopic,
 		KafkaTopicPartitions:   kafkaTopicPartitions,
 		KafkaDLQPartitions:     kafkaDLQPartitions,
@@ -350,7 +365,7 @@ func LoadConfig() (*Config, error) {
 		KafkaWriterBatchSize:      kafkaWriterBatchSize,
 		KafkaWriterBatchBytes:     int64(kafkaWriterBatchBytes),
 		KafkaWriterBatchTimeoutMs: kafkaWriterBatchTimeoutMs,
-		KafkaWriterRequiredAcks:   strconv.Itoa(kafkaWriterRequiredAcks),
+		KafkaWriterRequiredAcks:   kafkaWriterRequiredAcks,
 		KafkaWriterMaxAttempts:    kafkaWriterMaxAttempts,
 
 		KafkaReaderMinBytes:            kafkaReaderMinBytes,

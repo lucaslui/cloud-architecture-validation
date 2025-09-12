@@ -16,7 +16,7 @@ type KafkaClient struct {
 
 func NewKafkaClient(cfg *config.Config) *KafkaClient {
 	return &KafkaClient{
-		MainProducer: NewKafkaProducer(cfg, cfg.KafkaInputTopic),
+		MainProducer: NewKafkaProducer(cfg, cfg.KafkaWriterTopic),
 		DQLProducer:  NewKafkaProducer(cfg, cfg.KafkaDLQTopic),
 		Consumer:     NewKafkaConsumer(cfg),
 	}
@@ -45,9 +45,9 @@ func NewKafkaConsumer(cfg *config.Config) *kafka.Reader {
 	return kafka.NewReader(kafka.ReaderConfig{
 		Brokers: cfg.KafkaBrokers,
 		GroupID: cfg.KafkaGroupID,
-		Topic:   cfg.KafkaInputTopic,
+		Topic:   cfg.KafkaReaderTopic,
 
-		// Tuning específico do reader (via novas envs):
+		// Tuning específico do reader:
 		MinBytes:      cfg.KafkaReaderMinBytes,
 		MaxBytes:      cfg.KafkaReaderMaxBytes,
 		MaxWait:       time.Duration(cfg.KafkaReaderMaxWaitMs) * time.Millisecond,
@@ -64,7 +64,7 @@ func NewKafkaConsumer(cfg *config.Config) *kafka.Reader {
 		ReadBackoffMin: time.Duration(cfg.KafkaReaderReadBackoffMinMs) * time.Millisecond,
 		ReadBackoffMax: time.Duration(cfg.KafkaReaderReadBackoffMaxMs) * time.Millisecond,
 
-		// NÃO usar auto-commit; vocês fazem commit manual em batch (ackCh + CommitMessages)
+		// NÃO usar auto-commit; commit manual em batch (ackCh + CommitMessages)
 		CommitInterval: 0,
 	})
 }

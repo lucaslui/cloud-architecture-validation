@@ -24,7 +24,7 @@ type Processor struct {
 
 func NewProcessor(cfg *config.Config, reg registry.SchemaRegistry, out, dlq *kafka.Writer) *Processor {
 	return &Processor{
-		cfg: cfg, reg: reg, inTopic: cfg.KafkaInputTopic, outWriter: out, dlqWriter: dlq,
+		cfg: cfg, reg: reg, inTopic: cfg.KafkaReaderTopic, outWriter: out, dlqWriter: dlq,
 	}
 }
 
