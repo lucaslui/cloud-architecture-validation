@@ -267,10 +267,10 @@ func LoadConfig() (*Config, error) {
 		errs.add("KAFKA_GROUP_ID não pode ser vazio")
 	}
 	if kafkaReaderTopic == "" {
-		errs.add("KAFKA_INPUT_TOPIC não pode ser vazio")
+		errs.add("KAFKA_READER_TOPIC não pode ser vazio")
 	}
 	if kafkaWriterTopic == "" {
-		errs.add("KAFKA_OUTPUT_TOPIC não pode ser vazio")
+		errs.add("KAFKA_WRITER_TOPIC não pode ser vazio")
 	}
 	if kafkaDLQTopic == "" {
 		errs.add("KAFKA_DLQ_TOPIC não pode ser vazio")
@@ -292,6 +292,9 @@ func LoadConfig() (*Config, error) {
 	}
 	if kafkaAckBatchSize <= 0 {
 		errs.add("KAFKA_ACK_BATCH_SIZE deve ser > 0")
+	}
+	if kafkaRetentionMs <= 0 {
+		errs.add("KAFKA_RETENTION_MS deve ser > 0")
 	}
 	if kafkaWriterBatchSize <= 0 {
 		errs.add("KAFKA_WRITER_BATCH_SIZE deve ser > 0")
