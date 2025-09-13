@@ -351,6 +351,12 @@ services:
       - S3_BASE_PATH=bronze/hems
       # ===== Parquet
       - PARQUET_COMPRESSION=SNAPPY # ou ZSTD/GZIP
+      # ===== Novas configs de tuning
+      - MSG_CHANNEL_BUFFER=4096 # buffers de canais
+      - RESULT_CHANNEL_BUFFER=4096
+      - FLUSH_TICK_MS=1000
+      - PARQUET_WRITER_PARALLEL=4 # paralelismo parquet (ajustar conforme CPU)
+      - KAFKA_FETCH_RETRY_MS=50 # retry do fetch Kafka (ms)
     depends_on:
       kafka:
         condition: service_healthy
