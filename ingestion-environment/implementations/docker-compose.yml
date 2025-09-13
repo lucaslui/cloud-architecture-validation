@@ -357,6 +357,7 @@ services:
       - FLUSH_TICK_MS=1000
       - PARQUET_WRITER_PARALLEL=4 # paralelismo parquet (ajustar conforme CPU)
       - KAFKA_FETCH_RETRY_MS=50 # retry do fetch Kafka (ms)
+      - KAFKA_COMMIT_TIMEOUT_MS=5000 # tempo limite para commit de mensagens (ms)
     depends_on:
       kafka:
         condition: service_healthy
