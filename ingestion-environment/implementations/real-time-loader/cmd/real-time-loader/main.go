@@ -21,10 +21,14 @@ import (
 )
 
 func main() {
-	cfg := config.LoadEnvVariables()
+	logger := config.GetLogger()
 
-	log.Printf("[boot] rt-loader | brokers=%s group=%s topic=%s influx=%s org=%s bucket=%s",
-		cfg.KafkaBrokers, cfg.KafkaGroupID, cfg.KafkaInputTopic, cfg.InfluxURL, cfg.InfluxOrg, cfg.InfluxBucket)
+	cfg, err := config.LoadConfig(logger)
+	if err != nil {
+		logger.Fatalf("[boot] configuração inválida: %v", err)
+	}
+
+	logger.Printf("[info] real-time loader configs loaded:%s", cfg)
 
 	db := database.NewInfluxDB(cfg)
 	defer db.Close()
@@ -34,9 +38,8 @@ func main() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
-	setupGracefulShutdown(cancel)
+	setupGracefulShutdown(cancel, logger)
 
-	// Canais
 	msgCh := make(chan kafka.Message, 5000)
 	ackCh := make(chan kafka.Message, 5000)
 
@@ -48,7 +51,7 @@ func main() {
 				if errors.Is(err, context.Canceled) || ctx.Err() != nil {
 					return
 				}
-				log.Printf("[kafka] erro ao buscar: %v", err)
+				logger.Printf("[kafka] erro ao buscar: %v", err)
 				time.Sleep(50 * time.Millisecond)
 				continue
 			}
@@ -67,14 +70,14 @@ func main() {
 			for m := range msgCh {
 				var evt model.InboundEnvelope
 				if err := json.Unmarshal(m.Value, &evt); err != nil {
-					log.Printf("[parse] erro: %v | payload=%s", err, config.Truncate(m.Value, 256))
+					logger.Printf("[parse] erro: %v | payload=%s", err, config.Truncate(m.Value, 256))
 					ackCh <- m // descarta inválidas para não travar a partição
 					continue
 				}
 				// enqueue no WriteAPI assíncrono
 				if err := db.WriteEvent(ctx, &evt); err != nil {
 					// raríssimo aqui (só erro local de point). Não ACK → reprocessa
-					log.Printf("[influx-async] enqueue falhou: %v", err)
+					logger.Printf("[influx-async] enqueue falhou: %v", err)
 					continue
 				}
 				// sucesso no ENFILEIRAMENTO → ACK
@@ -85,7 +88,7 @@ func main() {
 
 	// committer: commit em lote (p.ex. 500 msgs ou 100ms)
 	go func() {
-		batch := make([]kafka.Message, 0, cfg.AckBatchSize)
+		batch := make([]kafka.Message, 0, cfg.KafkaAckBatchSize)
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
 		flush := func() {
@@ -93,7 +96,7 @@ func main() {
 				return
 			}
 			if err := kc.CommitMessages(context.Background(), batch...); err != nil {
-				log.Printf("[kafka] commit falhou: %v", err)
+				logger.Printf("[kafka] commit falhou: %v", err)
 			}
 			batch = batch[:0]
 		}
@@ -105,7 +108,7 @@ func main() {
 					return
 				}
 				batch = append(batch, m)
-				if len(batch) >= cfg.AckBatchSize {
+				if len(batch) >= cfg.KafkaAckBatchSize {
 					flush()
 				}
 			case <-t.C:
@@ -114,19 +117,18 @@ func main() {
 		}
 	}()
 
-	// 3) Espera término
 	<-ctx.Done()
 	close(msgCh)
 	wg.Wait()
 	close(ackCh)
 }
 
-func setupGracefulShutdown(cancel context.CancelFunc) {
+func setupGracefulShutdown(cancel context.CancelFunc, logger *log.Logger) {
 	sig := make(chan os.Signal, 1)
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	go func() {
 		<-sig
-		log.Printf("[shutdown] sinal recebido, finalizando...")
+		logger.Printf("[shutdown] sinal recebido, finalizando...")
 		cancel()
 	}()
 }
