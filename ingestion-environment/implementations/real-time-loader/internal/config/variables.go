@@ -13,10 +13,7 @@ type Config struct {
 	KafkaBrokers           []string
 	KafkaGroupID           string
 	KafkaReaderTopic       string
-	KafkaWriterTopic       string
-	KafkaDLQTopic          string
 	KafkaTopicPartitions   int
-	KafkaDLQPartitions     int
 	KafkaRetentionMs       int64
 	KafkaCompression       string
 	KafkaReplicationFactor int
@@ -49,10 +46,7 @@ Kafka:
   Brokers:            %v
   GroupID:            %s
   InputTopic:         %s
-  OutputTopic:        %s
-  DLQTopic:           %s
   TopicPartitions:    %d
-  DLQPartitions:      %d
   RetentionMs:        %d
   Compression:        %s
   ReplicationFactor:  %d
@@ -84,10 +78,7 @@ InfluxDB:
 		c.KafkaBrokers,
 		c.KafkaGroupID,
 		c.KafkaReaderTopic,
-		c.KafkaWriterTopic,
-		c.KafkaDLQTopic,
 		c.KafkaTopicPartitions,
-		c.KafkaDLQPartitions,
 		c.KafkaRetentionMs,
 		c.KafkaCompression,
 		c.KafkaReplicationFactor,
@@ -190,20 +181,11 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	kafkaBrokers := parseBrokers(getRequired("KAFKA_BROKERS", &errs), &errs)
 	kafkaGroupID := getRequired("KAFKA_GROUP_ID", &errs)
 	kafkaReaderTopic := getRequired("KAFKA_READER_TOPIC", &errs)
-	kafkaWriterTopic := getRequired("KAFKA_WRITER_TOPIC", &errs)
-	kafkaDLQTopic := getRequired("KAFKA_DLQ_TOPIC", &errs)
 	kafkaTopicPartitions := getRequiredInt("KAFKA_TOPIC_PARTITIONS", &errs)
-	kafkaDLQPartitions := getRequiredInt("KAFKA_DLQ_PARTITIONS", &errs)
 	kafkaCompression := getRequired("KAFKA_COMPRESSION", &errs)
 	kafkaRetentionMs := getRequiredInt64("KAFKA_RETENTION_MS", &errs)
 	kafkaReplicationFactor := getRequiredInt("KAFKA_REPLICATION_FACTOR", &errs)
 	kafkaAckBatchSize := getRequiredInt("KAFKA_ACK_BATCH_SIZE", &errs)
-
-	kafkaWriterBatchSize := getRequiredInt("KAFKA_WRITER_BATCH_SIZE", &errs)
-	kafkaWriterBatchBytes := getRequiredInt("KAFKA_WRITER_BATCH_BYTES", &errs)
-	kafkaWriterBatchTimeoutMs := getRequiredInt("KAFKA_WRITER_BATCH_TIMEOUT_MS", &errs)
-	kafkaWriterRequiredAcks := getRequired("KAFKA_WRITER_REQUIRED_ACKS", &errs)
-	kafkaWriterMaxAttempts := getRequiredInt("KAFKA_WRITER_MAX_ATTEMPTS", &errs)
 
 	kafkaReaderMinBytes := getRequiredInt("KAFKA_READER_MIN_BYTES", &errs)
 	kafkaReaderMaxBytes := getRequiredInt("KAFKA_READER_MAX_BYTES", &errs)
@@ -226,7 +208,6 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	InfluxFlushIntervalMs := getRequiredInt("INFLUX_FLUSH_INTERVAL_MS", &errs)
 
 	ensureOneOf("KAFKA_COMPRESSION", kafkaCompression, []string{"none", "gzip", "snappy", "lz4", "zstd"}, &errs)
-	ensureOneOf("KAFKA_WRITER_REQUIRED_ACKS", kafkaWriterRequiredAcks, []string{"none", "one", "all"}, &errs)
 
 	if len(kafkaBrokers) == 0 {
 		errs.add("KAFKA_BROKERS deve ter ao menos 1 broker")
@@ -237,17 +218,8 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	if kafkaReaderTopic == "" {
 		errs.add("KAFKA_READER_TOPIC não pode ser vazio")
 	}
-	if kafkaWriterTopic == "" {
-		errs.add("KAFKA_WRITER_TOPIC não pode ser vazio")
-	}
-	if kafkaDLQTopic == "" {
-		errs.add("KAFKA_DLQ_TOPIC não pode ser vazio")
-	}
 	if kafkaTopicPartitions <= 0 {
 		errs.add("KAFKA_TOPIC_PARTITIONS deve ser > 0")
-	}
-	if kafkaDLQPartitions <= 0 {
-		errs.add("KAFKA_DLQ_TOPIC_PARTITIONS deve ser > 0")
 	}
 	if kafkaCompression == "" {
 		errs.add("KAFKA_COMPRESSION não pode ser vazio")
@@ -263,18 +235,6 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	}
 	if kafkaRetentionMs < -1 {
 		errs.add("KAFKA_RETENTION_MS deve ser >= -1")
-	}
-	if kafkaWriterBatchSize <= 0 {
-		errs.add("KAFKA_WRITER_BATCH_SIZE deve ser > 0")
-	}
-	if kafkaWriterBatchBytes <= 0 {
-		errs.add("KAFKA_WRITER_BATCH_BYTES deve ser > 0")
-	}
-	if kafkaWriterBatchTimeoutMs <= 0 {
-		errs.add("KAFKA_WRITER_BATCH_TIMEOUT_MS deve ser > 0")
-	}
-	if kafkaWriterMaxAttempts <= 0 {
-		errs.add("KAFKA_WRITER_MAX_ATTEMPTS deve ser > 0")
 	}
 	if kafkaReaderMinBytes < 0 {
 		errs.add("KAFKA_READER_MIN_BYTES deve ser >= 0")
@@ -345,10 +305,7 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 		KafkaBrokers:           kafkaBrokers,
 		KafkaGroupID:           kafkaGroupID,
 		KafkaReaderTopic:       kafkaReaderTopic,
-		KafkaWriterTopic:       kafkaWriterTopic,
-		KafkaDLQTopic:          kafkaDLQTopic,
 		KafkaTopicPartitions:   kafkaTopicPartitions,
-		KafkaDLQPartitions:     kafkaDLQPartitions,
 		KafkaRetentionMs:       kafkaRetentionMs,
 		KafkaCompression:       kafkaCompression,
 		KafkaReplicationFactor: kafkaReplicationFactor,
