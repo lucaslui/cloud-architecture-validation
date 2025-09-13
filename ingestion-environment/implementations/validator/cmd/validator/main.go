@@ -34,10 +34,8 @@ func main() {
 		logger.Fatalf("[error] kafka ensure topics error: %v", err)
 	}
 
-	// 2) construir reader/writers
 	kafkaClient := broker.NewKafkaClient(cfg)
 
-	// 3) registry + processor
 	reg := registry.NewRedisRegistry(registry.RedisOpts{
 		Addr: cfg.RedisAddr, Password: cfg.RedisPassword, DB: cfg.RedisDB,
 		Namespace: cfg.RedisNamespace, InvalidateChannel: cfg.RedisInvalidateChan,
@@ -45,11 +43,11 @@ func main() {
 	})
 	proc := processing.NewProcessor(cfg, reg, kafkaClient.MainProducer, kafkaClient.DQLProducer)
 
-	// 4) pipeline: fetch -> workers(proc) -> commits(batch)
+	// pipeline: fetch -> workers(proc) -> commits(batch)
 	msgCh := make(chan kafkasdk.Message, 5000)
 	ackCh := make(chan kafkasdk.Message, 5000)
 
-	// 4.1 workers
+	// workers
 	var wg sync.WaitGroup
 	wg.Add(cfg.ProcessingWorkers)
 	for i := 0; i < cfg.ProcessingWorkers; i++ {
@@ -66,7 +64,7 @@ func main() {
 		}()
 	}
 
-	// 4.2 committer
+	// committer
 	go func() {
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
@@ -97,7 +95,7 @@ func main() {
 		}
 	}()
 
-	// 4.3 fetch loop
+// fetch loop
 fetchLoop:
 	for {
 		msg, err := kafkaClient.Consumer.FetchMessage(ctx)
@@ -114,7 +112,7 @@ fetchLoop:
 		msgCh <- msg
 	}
 
-	// 5) shutdown ordenado
+	// shutdown ordenado
 	close(msgCh)
 	wg.Wait()
 	close(ackCh)
