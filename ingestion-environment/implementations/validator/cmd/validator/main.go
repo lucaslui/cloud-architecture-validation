@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"errors"
-	"log"
 	"os"
 	"os/signal"
 	"sync"
@@ -22,7 +21,7 @@ func main() {
 
 	cfg, err := config.LoadConfig()
 	if err != nil {
-		log.Fatalf("[boot] configuração inválida: %v", err)
+		logger.Fatalf("[boot] configuração inválida: %v", err)
 	}
 
 	logger.Printf("[info] validator configs loaded:%s", cfg)
