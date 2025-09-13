@@ -10,14 +10,14 @@ import (
 
 type KafkaClient struct {
 	MainProducer *kafka.Writer
-	DQLProducer  *kafka.Writer
+	DLQProducer  *kafka.Writer
 	Consumer     *kafka.Reader
 }
 
 func NewKafkaClient(cfg *config.Config) *KafkaClient {
 	return &KafkaClient{
 		MainProducer: NewKafkaProducer(cfg, cfg.KafkaWriterTopic),
-		DQLProducer:  NewKafkaProducer(cfg, cfg.KafkaDLQTopic),
+		DLQProducer:  NewKafkaProducer(cfg, cfg.KafkaDLQTopic),
 		Consumer:     NewKafkaConsumer(cfg),
 	}
 }
@@ -99,6 +99,6 @@ func parseCompression(s string) kafka.Compression {
 
 func (p *KafkaClient) Close() {
 	_ = p.MainProducer.Close()
-	_ = p.DQLProducer.Close()
+	_ = p.DLQProducer.Close()
 	_ = p.Consumer.Close()
 }

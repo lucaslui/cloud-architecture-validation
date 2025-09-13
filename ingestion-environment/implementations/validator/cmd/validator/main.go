@@ -41,7 +41,7 @@ func main() {
 		Namespace: cfg.RedisNamespace, InvalidateChannel: cfg.RedisInvalidateChan,
 		UsePubSub: cfg.RedisUsePubSub, Timeout: 5 * time.Second,
 	})
-	proc := processing.NewProcessor(cfg, reg, kafkaClient.MainProducer, kafkaClient.DQLProducer)
+	proc := processing.NewProcessor(cfg, reg, kafkaClient.MainProducer, kafkaClient.DLQProducer)
 
 	// pipeline: fetch -> workers(proc) -> commits(batch)
 	msgCh := make(chan kafkasdk.Message, 5000)
@@ -95,7 +95,7 @@ func main() {
 		}
 	}()
 
-// fetch loop
+	// fetch loop
 fetchLoop:
 	for {
 		msg, err := kafkaClient.Consumer.FetchMessage(ctx)

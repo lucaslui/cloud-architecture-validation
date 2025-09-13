@@ -293,8 +293,8 @@ func LoadConfig() (*Config, error) {
 	if kafkaAckBatchSize <= 0 {
 		errs.add("KAFKA_ACK_BATCH_SIZE deve ser > 0")
 	}
-	if kafkaRetentionMs <= 0 {
-		errs.add("KAFKA_RETENTION_MS deve ser > 0")
+	if kafkaRetentionMs < -1 {
+		errs.add("KAFKA_RETENTION_MS deve ser > -1")
 	}
 	if kafkaWriterBatchSize <= 0 {
 		errs.add("KAFKA_WRITER_BATCH_SIZE deve ser > 0")
@@ -328,6 +328,21 @@ func LoadConfig() (*Config, error) {
 	}
 	if kafkaReaderSessionTimeoutMs <= 0 {
 		errs.add("KAFKA_READER_SESSION_TIMEOUT_MS deve ser > 0")
+	}
+		if kafkaReaderHeartbeatIntervalMs <= 0 {
+		errs.add("KAFKA_READER_HEARTBEAT_INTERVAL_MS deve ser > 0")
+	}
+	if kafkaReaderRebalanceTimeoutMs <= 0 {
+		errs.add("KAFKA_READER_REBALANCE_TIMEOUT_MS deve ser > 0")
+	}
+	if kafkaReaderReadBackoffMinMs < 0 {
+		errs.add("KAFKA_READER_READ_BACKOFF_MIN_MS deve ser >= 0")
+	}
+	if kafkaReaderReadBackoffMaxMs <= 0 {
+		errs.add("KAFKA_READER_READ_BACKOFF_MAX_MS deve ser > 0")
+	}
+	if kafkaReaderReadBackoffMaxMs < kafkaReaderReadBackoffMinMs {
+		errs.add("KAFKA_READER_READ_BACKOFF_MAX_MS deve ser >= KAFKA_READER_READ_BACKOFF_MIN_MS")
 	}
 	if processingWorkers <= 0 {
 		errs.add("PROCESSING_WORKERS deve ser > 0")
