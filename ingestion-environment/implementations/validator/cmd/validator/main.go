@@ -34,7 +34,8 @@ func main() {
 	}
 
 	kafkaClient := broker.NewKafkaClient(cfg)
-
+	defer kafkaClient.Close()
+	
 	reg := registry.NewRedisRegistry(registry.RedisOpts{
 		Addr: cfg.RedisAddr, Password: cfg.RedisPassword, DB: cfg.RedisDB,
 		Namespace: cfg.RedisNamespace, InvalidateChannel: cfg.RedisInvalidateChan,
