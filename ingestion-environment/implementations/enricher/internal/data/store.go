@@ -5,7 +5,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/lucaslui/hems/enricher-validator/internal/model"
+	"github.com/lucaslui/hems/enricher/internal/model"
 )
 
 type Store struct {

@@ -8,23 +8,23 @@ import (
 
 	"github.com/segmentio/kafka-go"
 
-	"github.com/lucaslui/hems/enricher-validator/internal/config"
-	"github.com/lucaslui/hems/enricher-validator/internal/data"
-	"github.com/lucaslui/hems/enricher-validator/internal/model"
+	"github.com/lucaslui/hems/enricher/internal/config"
+	"github.com/lucaslui/hems/enricher/internal/data"
+	"github.com/lucaslui/hems/enricher/internal/model"
 )
 
 type Processor struct {
-	cfg       config.Config
+	cfg       *config.Config
 	ctxStore  *data.Store
 	inTopic   string
 	outWriter *kafka.Writer
 	dlqWriter *kafka.Writer
 }
 
-func NewProcessor(cfg config.Config, store *data.Store, out, dlq *kafka.Writer) *Processor {
+func NewProcessor(cfg *config.Config, store *data.Store, out, dlq *kafka.Writer) *Processor {
 	return &Processor{
 		cfg: cfg, ctxStore: store,
-		inTopic: cfg.InputTopic, outWriter: out, dlqWriter: dlq,
+		inTopic: cfg.KafkaReaderTopic, outWriter: out, dlqWriter: dlq,
 	}
 }
 
@@ -39,7 +39,7 @@ func (p *Processor) Process(ctx context.Context, msg kafka.Message) (latency tim
 			Error:           fmt.Sprintf("json inválido no envelope: %v", err),
 			Stage:           stage,
 			InboundEnvelope: model.InboundEnvelope{},
-			Metadata:        p.buildMetadata(nil, nil),
+			Metadata:        p.buildMetadata(nil),
 		}, msg.Key)
 		return 0, nil
 	}
@@ -52,7 +52,7 @@ func (p *Processor) Process(ctx context.Context, msg kafka.Message) (latency tim
 		enrichment = p.ctxStore.Get()
 	}
 
-	metadata := p.buildMetadata(&env, enrichment)
+	metadata := p.buildMetadata(&env)
 
 	out := model.OutboundEnvelope{
 		InboundEnvelope: env,
@@ -90,7 +90,7 @@ func (p *Processor) Process(ctx context.Context, msg kafka.Message) (latency tim
 
 func (p *Processor) emitDLQ(ctx context.Context, evt model.DLQEvent, key []byte) {
 	if evt.Metadata.EventID == "" {
-		evt.Metadata = p.buildMetadata(&evt.InboundEnvelope, nil)
+		evt.Metadata = p.buildMetadata(&evt.InboundEnvelope)
 	}
 
 	b, _ := json.Marshal(evt)
@@ -98,7 +98,7 @@ func (p *Processor) emitDLQ(ctx context.Context, evt model.DLQEvent, key []byte)
 	_ = p.dlqWriter.WriteMessages(ctx, kafka.Message{Key: key, Value: b})
 }
 
-func (p *Processor) buildMetadata(env *model.InboundEnvelope, enrichment *model.ContextEnrichment) model.OutboundMetadata {
+func (p *Processor) buildMetadata(env *model.InboundEnvelope) model.OutboundMetadata {
 	now := time.Now().UTC()
 
 	return model.OutboundMetadata{

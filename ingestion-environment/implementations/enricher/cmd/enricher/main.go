@@ -11,58 +11,48 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/lucaslui/hems/enricher-validator/internal/broker"
-	"github.com/lucaslui/hems/enricher-validator/internal/config"
-	"github.com/lucaslui/hems/enricher-validator/internal/data"
-	"github.com/lucaslui/hems/enricher-validator/internal/processing"
+	"github.com/lucaslui/hems/enricher/internal/broker"
+	"github.com/lucaslui/hems/enricher/internal/config"
+	"github.com/lucaslui/hems/enricher/internal/data"
+	"github.com/lucaslui/hems/enricher/internal/processing"
 	kafkasdk "github.com/segmentio/kafka-go"
 )
 
 func main() {
-	cfg := config.LoadConfig()
+	logger := config.GetLogger()
 
-	log.Printf("[boot] enricher | brokers=%v group=%s in=%s out=%s dlq=%s workers=%d ack_batch_size=%d",
-		cfg.Brokers, cfg.GroupID, cfg.InputTopic, cfg.OutputTopic, cfg.DLQTopic, cfg.ProcessingWorkers, cfg.AckBatchSize)
+	cfg, err := config.LoadConfig()
+	if err != nil {
+		log.Fatalf("[boot] configuração inválida: %v", err)
+	}
+
+	log.Printf("[info] enricher configs loaded:%s", cfg)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
 
-	// 1) garantir tópicos
-	ensureCtx, ensureCancel := context.WithTimeout(ctx, 15*time.Second)
-	broker.EnsureTopics(ensureCtx, broker.EnsureTopicsArgs{
-		Brokers: cfg.Brokers, InputTopic: cfg.InputTopic,
-		OutputTopic: cfg.OutputTopic, OutTopicPartitions: cfg.OutTopicPartitions,
-		DLQTopic: cfg.DLQTopic, DLQTopicPartitions: cfg.DLQTopicPartitions,
-	})
-	ensureCancel()
+	if err := broker.EnsureKafkaTopics(ctx, cfg, logger); err != nil {
+		logger.Fatalf("[error] kafka ensure topics error: %v", err)
+	}
 
-	// 2) construir reader/writers
-	reader := broker.NewReader(cfg)
-	defer reader.Close()
-	writerOut := broker.NewWriter(cfg.Brokers, cfg.OutputTopic)
-	defer writerOut.Close()
-	writerDLQ := broker.NewWriter(cfg.Brokers, cfg.DLQTopic)
-	defer writerDLQ.Close()
+	kafkaClient := broker.NewKafkaClient(cfg)
 
-	// 3) carregar contexto de enriquecimento
 	store, _ := data.LoadContext(cfg.ContextStorePath)
 
-	// 4) processor
-	proc := processing.NewProcessor(cfg, store, writerOut, writerDLQ)
+	proc := processing.NewProcessor(cfg, store, kafkaClient.MainProducer, kafkaClient.DLQProducer)
 
-	// 5) pipeline: fetch -> workers(proc) -> commit(batch)
-
+	// pipeline: fetch -> workers(proc) -> commit(batch)
 	msgCh := make(chan kafkasdk.Message, 5000)
 	ackCh := make(chan kafkasdk.Message, 5000)
 
-	// 5.1 workers
+	// workers
 	var wg sync.WaitGroup
 	wg.Add(cfg.ProcessingWorkers)
 	for i := 0; i < cfg.ProcessingWorkers; i++ {
 		go func(id int) {
 			defer wg.Done()
 			for m := range msgCh {
-				lat, _ := proc.Process(ctx, m) // publica out/DLQ (Writer Async=false)
+				lat, _ := proc.Process(ctx, m)
 				if lat > 0 {
 					// log.Printf("[out] key=%q latency_ms=%.2f", string(m.Key), float64(lat.Milliseconds()))
 				}
@@ -71,19 +61,19 @@ func main() {
 		}(i)
 	}
 
-	// 5.2 committer (batch)
+	// committer (batch)
 	doneCommit := make(chan struct{})
 	go func() {
 		defer close(doneCommit)
 		t := time.NewTicker(100 * time.Millisecond)
 		defer t.Stop()
-		batch := make([]kafkasdk.Message, 0, cfg.AckBatchSize)
+		batch := make([]kafkasdk.Message, 0, cfg.KafkaAckBatchSize)
 
 		flush := func() {
 			if len(batch) == 0 {
 				return
 			}
-			_ = reader.CommitMessages(context.Background(), batch...)
+			_ = kafkaClient.Consumer.CommitMessages(context.Background(), batch...)
 			batch = batch[:0]
 		}
 
@@ -95,7 +85,7 @@ func main() {
 					return
 				}
 				batch = append(batch, m)
-				if len(batch) >= cfg.AckBatchSize {
+				if len(batch) >= cfg.KafkaAckBatchSize {
 					flush()
 				}
 			case <-t.C:
@@ -104,10 +94,10 @@ func main() {
 		}
 	}()
 
-	// 5.3 fetch loop
+	// fetch loop
 fetchLoop:
 	for {
-		m, err := reader.FetchMessage(ctx)
+		m, err := kafkaClient.Consumer.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
 				log.Printf("[shutdown] encerrando consumo")
@@ -121,7 +111,7 @@ fetchLoop:
 		msgCh <- m
 	}
 
-	// 6) shutdown ordenado
+	// shutdown ordenado
 	close(msgCh)
 	wg.Wait()
 	close(ackCh)
