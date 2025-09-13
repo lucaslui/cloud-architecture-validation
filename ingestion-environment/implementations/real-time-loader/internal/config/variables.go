@@ -74,10 +74,10 @@ Workers:
   Processing:         %d
 
 InfluxDB:
-  URL:                %s
-  Token:              %s
-  Org:                %s
-  Bucket:             %s
+  URL:               %s
+  Token:             %s
+  Org:               %s
+  Bucket:            %s
   BatchSize:         %d
   FlushIntervalMs:   %d
 `,
