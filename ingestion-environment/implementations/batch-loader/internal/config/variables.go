@@ -19,6 +19,7 @@ type Config struct {
 	KafkaReplicationFactor int
 	KafkaAckBatchSize      int
 	KafkaFetchRetryMs      int // tempo de espera antes de tentar refazer fetch em caso de erro (milissegundos)
+	KafkaCommitTimeoutMs   int // tempo limite para commit de mensagens (milissegundos)
 
 	KafkaReaderMinBytes            int
 	KafkaReaderMaxBytes            int
@@ -101,6 +102,7 @@ Channel Buffers & Tuning:
   FlushTickMs:          %d
   ParquetWriterParallel:%d
   KafkaFetchRetryMs:    %d
+  KafkaCommitTimeoutMs: %d
 `,
 		// Kafka
 		c.KafkaBrokers,
@@ -149,6 +151,7 @@ Channel Buffers & Tuning:
 		c.FlushTickMs,
 		c.ParquetWriterParallel,
 		c.KafkaFetchRetryMs,
+		c.KafkaCommitTimeoutMs,
 	)
 }
 
@@ -279,6 +282,7 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	flushTickMs := getRequiredInt("FLUSH_TICK_MS", &errs)
 	parquetWriterParallel := getRequiredInt64("PARQUET_WRITER_PARALLEL", &errs)
 	kafkaFetchRetryMs := getRequiredInt("KAFKA_FETCH_RETRY_MS", &errs)
+	kafkaCommitTimeoutMs := getRequiredInt("KAFKA_COMMIT_TIMEOUT_MS", &errs)
 
 	ensureOneOf("KAFKA_COMPRESSION", kafkaCompression, []string{"none", "gzip", "snappy", "lz4", "zstd"}, &errs)
 
@@ -389,6 +393,9 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	if kafkaFetchRetryMs <= 0 {
 		errs.add("KAFKA_FETCH_RETRY_MS deve ser > 0")
 	}
+	if kafkaCommitTimeoutMs <= 0 {
+		errs.add("KAFKA_COMMIT_TIMEOUT_MS deve ser > 0")
+	}
 
 	if errs.has() {
 		for _, e := range errs {
@@ -438,5 +445,6 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 		FlushTickMs:           flushTickMs,
 		ParquetWriterParallel: parquetWriterParallel,
 		KafkaFetchRetryMs:     kafkaFetchRetryMs,
+		KafkaCommitTimeoutMs:  kafkaCommitTimeoutMs,
 	}, nil
 }

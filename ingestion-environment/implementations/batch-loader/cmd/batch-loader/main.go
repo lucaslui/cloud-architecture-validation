@@ -42,6 +42,7 @@ func main() {
 	}
 
 	kafkaClient := broker.NewKafkaClient(cfg)
+	defer kafkaClient.Close()
 
 	minio, err := storage.NewMinIO(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3UseTLS, cfg.S3Bucket)
 	if err != nil {
@@ -117,19 +118,20 @@ func main() {
 		for _, m := range lastByPartition {
 			acks = append(acks, m)
 		}
-		// commita em janelas de até KAFKA_ACK_BATCH_SIZE
+
 		for i := 0; i < len(acks); i += cfg.KafkaAckBatchSize {
 			end := i + cfg.KafkaAckBatchSize
 			if end > len(acks) {
 				end = len(acks)
 			}
-			if err := kafkaClient.Reader.CommitMessages(context.Background(), acks[i:end]...); err != nil {
-				// em erro, mantém lastByPartition para retry no próximo flush
+			cctx, ccancel := context.WithTimeout(context.Background(), time.Duration(cfg.KafkaCommitTimeoutMs)*time.Millisecond)
+			if err := kafkaClient.Reader.CommitMessages(cctx, acks[i:end]...); err != nil {
 				logger.Printf("commit error: %v", err)
+				ccancel()
 				return
 			}
+			ccancel()
 		}
-		// limpa após commit bem-sucedido
 		lastByPartition = make(map[int]kafka.Message)
 	}
 
@@ -147,13 +149,15 @@ func main() {
 	}
 
 	// Loop do aggregator
+	var aggWG sync.WaitGroup
+	aggWG.Add(1)
 	go func() {
+		defer aggWG.Done()
 		for {
 			select {
 			case <-ctx.Done():
 				logger.Println("signal received, flushing and stopping...")
 				flushNow("shutdown")
-				close(resCh)
 				return
 
 			case <-ticker.C:
@@ -185,14 +189,11 @@ func main() {
 		}
 	}()
 
-	// espera sinal
 	<-ctx.Done()
-
-	// shutdown ordenado
 	close(msgCh)
 	workersWG.Wait()
+	close(resCh)
+	aggWG.Wait()
 	flushNow("finalize")
 	fetchWG.Wait()
-
-	logger.Println("batch-loader stopped")
 }
