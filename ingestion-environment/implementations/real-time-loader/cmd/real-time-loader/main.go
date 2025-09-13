@@ -30,15 +30,16 @@ func main() {
 
 	logger.Printf("[info] real-time loader configs loaded:%s", cfg)
 
-	db := database.NewInfluxDB(cfg)
-	defer db.Close()
-
-	kc := broker.NewKafkaClient(cfg)
-	defer kc.Close()
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	setupGracefulShutdown(cancel, logger)
+
+	if err := broker.EnsureKafkaTopics(ctx, cfg, logger); err != nil {
+		logger.Fatalf("[error] kafka ensure topics error: %v", err)
+	}
+
+	kc := broker.NewKafkaClient(cfg)
+	defer kc.Close()
 
 	msgCh := make(chan kafka.Message, 5000)
 	ackCh := make(chan kafka.Message, 5000)
@@ -58,6 +59,9 @@ func main() {
 			msgCh <- m
 		}
 	}()
+
+	db := database.NewInfluxDB(cfg)
+	defer db.Close()
 
 	// 2) Workers: parse → enfileira no Influx (WriteAPI assíncrono) → sinaliza ack
 	var wg sync.WaitGroup
