@@ -36,7 +36,8 @@ func main() {
 	}
 
 	kafkaClient := broker.NewKafkaClient(cfg)
-
+	defer kafkaClient.Close()
+	
 	store, _ := data.LoadContext(cfg.ContextStorePath)
 
 	proc := processing.NewProcessor(cfg, store, kafkaClient.MainProducer, kafkaClient.DLQProducer)
