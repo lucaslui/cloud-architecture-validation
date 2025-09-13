@@ -12,13 +12,13 @@ import (
 
 type KafkaClient struct {
 	MainProducer *kafka.Writer
-	DQLProducer  *kafka.Writer
+	DLQProducer  *kafka.Writer
 }
 
 func NewKafkaClient(cfg *config.Config) *KafkaClient {
 	return &KafkaClient{
 		MainProducer: NewKafkaProducer(cfg, cfg.KafkaTopic),
-		DQLProducer:  NewKafkaProducer(cfg, cfg.KafkaDLQTopic),
+		DLQProducer:  NewKafkaProducer(cfg, cfg.KafkaDLQTopic),
 	}
 }
 
@@ -43,7 +43,7 @@ func NewKafkaProducer(cfg *config.Config, topic string) *kafka.Writer {
 
 func (p *KafkaClient) Close() {
 	_ = p.MainProducer.Close()
-	_ = p.DQLProducer.Close()
+	_ = p.DLQProducer.Close()
 }
 
 func (p *KafkaClient) Send(ctx context.Context, key, value []byte, headers ...kafka.Header) error {
@@ -55,7 +55,7 @@ func (p *KafkaClient) Send(ctx context.Context, key, value []byte, headers ...ka
 }
 
 func (p *KafkaClient) SendDLQ(ctx context.Context, key, value []byte, headers ...kafka.Header) error {
-	return p.DQLProducer.WriteMessages(ctx, kafka.Message{
+	return p.DLQProducer.WriteMessages(ctx, kafka.Message{
 		Key:     key,
 		Value:   value,
 		Headers: headers,
