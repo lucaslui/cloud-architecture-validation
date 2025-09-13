@@ -26,7 +26,7 @@ func main() {
 		log.Fatalf("[boot] configuração inválida: %v", err)
 	}
 
-	log.Printf("[info] enricher configs loaded:%s", cfg)
+	logger.Printf("[info] enricher configs loaded:%s", cfg)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
