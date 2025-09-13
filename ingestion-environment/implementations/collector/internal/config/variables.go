@@ -11,7 +11,6 @@ import (
 )
 
 type Config struct {
-	// MQTT
 	MQTTBrokerURL    string
 	MQTTClientID     string
 	MQTTUsername     string // opcional
@@ -20,7 +19,6 @@ type Config struct {
 	MQTTQoS          byte
 	MQTTChannelDepth uint
 
-	// Kafka
 	KafkaBrokers           []string
 	KafkaTopic             string
 	KafkaDLQTopic          string
@@ -51,6 +49,7 @@ MQTT:
   BrokerURL:     %s
   ClientID:      %s
   Username:      %s
+  Password:      %s
   Topic:         %s
   QoS:           %d
   ChannelDepth:  %d
@@ -81,11 +80,37 @@ Dispatcher:
   Strategy:          %s
   EnqTimeoutMs:      %d
 
-`, c.MQTTBrokerURL, c.MQTTClientID, c.MQTTUsername, c.MQTTTopic, c.MQTTQoS, c.MQTTChannelDepth,
-		c.KafkaBrokers, c.KafkaTopic, c.KafkaDLQTopic, c.KafkaTopicPartitions, c.KafkaDLQPartitions, c.KafkaReplicationFactor,
-		c.KafkaBatchSize, c.KafkaBatchBytes, c.KafkaBatchTimeoutMs, c.KafkaCompression, c.KafkaRequiredAcks, c.KafkaMaxAttempts,
-		c.KafkaRetentionMs, c.ProcessingWorkers, c.WorkerQueueSize,
-		c.DispatcherCapacity, c.DispatcherMaxBatch, c.DispatcherTickMs, c.WorkQueueStrategy, c.WorkQueueEnqTimeoutMs)
+`,
+		c.MQTTBrokerURL,
+		c.MQTTClientID,
+		c.MQTTUsername,
+		strings.Repeat("*", len(c.MQTTPassword)),
+		c.MQTTTopic,
+		c.MQTTQoS,
+		c.MQTTChannelDepth,
+
+		c.KafkaBrokers,
+		c.KafkaTopic,
+		c.KafkaDLQTopic,
+		c.KafkaTopicPartitions,
+		c.KafkaDLQPartitions,
+		c.KafkaReplicationFactor,
+		c.KafkaBatchSize,
+		c.KafkaBatchBytes,
+		c.KafkaBatchTimeoutMs,
+		c.KafkaCompression,
+		c.KafkaRequiredAcks,
+		c.KafkaMaxAttempts,
+		c.KafkaRetentionMs,
+
+		c.ProcessingWorkers,
+		c.WorkerQueueSize,
+		c.DispatcherCapacity,
+		c.DispatcherMaxBatch,
+		c.DispatcherTickMs,
+		c.WorkQueueStrategy,
+		c.WorkQueueEnqTimeoutMs,
+	)
 }
 
 type errList []string
