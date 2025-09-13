@@ -149,27 +149,31 @@ services:
       - MQTT_CLIENT_ID=hems-collector
       - MQTT_TOPIC=ingestion/telemetry
       - MQTT_QOS=0
-      - MQTT_CHANNEL_DEPTH=5000
+      - MQTT_CHANNEL_DEPTH=20000
+      # =============================
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_TOPIC=raw-events-topic
       - KAFKA_DLQ_TOPIC=raw-events-dlq
       - KAFKA_TOPIC_PARTITIONS=6
       - KAFKA_DLQ_PARTITIONS=1
-      - KAFKA_REPLICATION_FACTOR=1
-      - KAFKA_BATCH_SIZE=2000
-      - KAFKA_BATCH_BYTES=1048576
-      - KAFKA_BATCH_TIMEOUT_MS=5
+      - KAFKA_REPLICATION_FACTOR=1 # 2 ou 3 em prod
+      - KAFKA_BATCH_SIZE=5000
+      - KAFKA_BATCH_BYTES=4194304 # 4MB
+      - KAFKA_BATCH_TIMEOUT_MS=25
       - KAFKA_COMPRESSION=snappy
       - KAFKA_REQUIRED_ACKS=one
-      - KAFKA_MAX_ATTEMPTS=5
-      - PROCESSING_WORKERS=8
-      - WORKER_QUEUE_SIZE=10000
-      - WORK_QUEUE_STRATEGY=block
-      - WORK_QUEUE_ENQ_TIMEOUT_MS=50
-      - DISPATCHER_CAPACITY=20000
-      - DISPATCHER_MAX_BATCH=2000
-      - DISPATCHER_TICK_MS=4
+      - KAFKA_MAX_ATTEMPTS=10
       - KAFKA_RETENTION_MS=86400000
+      # =============================
+      - PROCESSING_WORKERS=8
+      # =============================
+      - WORKER_QUEUE_SIZE=50000
+      - WORK_QUEUE_STRATEGY=block
+      - WORK_QUEUE_ENQ_TIMEOUT_MS=100
+      # =============================
+      - DISPATCHER_CAPACITY=50000
+      - DISPATCHER_MAX_BATCH=5000
+      - DISPATCHER_TICK_MS=20
     depends_on:
       vernemq:
         condition: service_healthy
@@ -190,20 +194,20 @@ services:
       - KAFKA_DLQ_PARTITIONS=1
       - KAFKA_RETENTION_MS=86400000
       - KAFKA_COMPRESSION=snappy
-      - KAFKA_REPLICATION_FACTOR=1
-      - KAFKA_ACK_BATCH_SIZE=500
+      - KAFKA_REPLICATION_FACTOR=1 # 2 ou 3 em prod
+      - KAFKA_ACK_BATCH_SIZE=1000
        # =============================
-      - KAFKA_WRITER_BATCH_SIZE=2000
-      - KAFKA_WRITER_BATCH_BYTES=1048576
-      - KAFKA_WRITER_BATCH_TIMEOUT_MS=5
+      - KAFKA_WRITER_BATCH_SIZE=5000
+      - KAFKA_WRITER_BATCH_BYTES=4194304 # 4MB
+      - KAFKA_WRITER_BATCH_TIMEOUT_MS=25
       - KAFKA_WRITER_REQUIRED_ACKS=one
-      - KAFKA_WRITER_MAX_ATTEMPTS=5
+      - KAFKA_WRITER_MAX_ATTEMPTS=10
       # =============================
-      - KAFKA_READER_MIN_BYTES=10000
-      - KAFKA_READER_MAX_BYTES=1000000
-      - KAFKA_READER_MAX_WAIT_MS=200
-      - KAFKA_READER_QUEUE_CAPACITY=10000
-      - KAFKA_READER_READ_LAG_INTERVAL_MS=10000
+      - KAFKA_READER_MIN_BYTES=262144 # 256KB
+      - KAFKA_READER_MAX_BYTES=5242880 # 5MB 
+      - KAFKA_READER_MAX_WAIT_MS=150
+      - KAFKA_READER_QUEUE_CAPACITY=20000
+      - KAFKA_READER_READ_LAG_INTERVAL_MS=-1 # desabilitado
       - KAFKA_READER_SESSION_TIMEOUT_MS=30000
       - KAFKA_READER_HEARTBEAT_INTERVAL_MS=10000
       - KAFKA_READER_REBALANCE_TIMEOUT_MS=60000
@@ -231,12 +235,37 @@ services:
     restart: unless-stopped
     environment:
       - KAFKA_BROKERS=kafka:9092
-      - KAFKA_INPUT_TOPIC=validated-events-topic
-      - KAFKA_OUTPUT_TOPIC=enriched-events-topic
+      - KAFKA_GROUP_ID=validator
+      - KAFKA_READER_TOPIC=validated-events-topic
+      - KAFKA_WRITER_TOPIC=enriched-events-topic
       - KAFKA_DLQ_TOPIC=enriched-events-dlq
-      - CONTEXT_STORE_PATH=/app/device-context.json
+      - KAFKA_TOPIC_PARTITIONS=6
+      - KAFKA_DLQ_PARTITIONS=1
+      - KAFKA_RETENTION_MS=86400000
+      - KAFKA_COMPRESSION=snappy
+      - KAFKA_REPLICATION_FACTOR=1 # 2 ou 3 em prod
+      - KAFKA_ACK_BATCH_SIZE=1000
+       # =============================
+      - KAFKA_WRITER_BATCH_SIZE=5000
+      - KAFKA_WRITER_BATCH_BYTES=4194304 # 4MB
+      - KAFKA_WRITER_BATCH_TIMEOUT_MS=25
+      - KAFKA_WRITER_REQUIRED_ACKS=one
+      - KAFKA_WRITER_MAX_ATTEMPTS=10
+      # =============================
+      - KAFKA_READER_MIN_BYTES=262144 # 256KB
+      - KAFKA_READER_MAX_BYTES=5242880 # 5MB 
+      - KAFKA_READER_MAX_WAIT_MS=150
+      - KAFKA_READER_QUEUE_CAPACITY=20000
+      - KAFKA_READER_READ_LAG_INTERVAL_MS=-1 # desabilitado
+      - KAFKA_READER_SESSION_TIMEOUT_MS=30000
+      - KAFKA_READER_HEARTBEAT_INTERVAL_MS=10000
+      - KAFKA_READER_REBALANCE_TIMEOUT_MS=60000
+      - KAFKA_READER_READ_BACKOFF_MIN_MS=100
+      - KAFKA_READER_READ_BACKOFF_MAX_MS=1000
+      # =============================
       - PROCESSING_WORKERS=8
-      - ACK_BATCH_SIZE=500
+      # =============================
+      - CONTEXT_STORE_PATH=/app/device-context.json
     depends_on:
       validator:
         condition: service_started
