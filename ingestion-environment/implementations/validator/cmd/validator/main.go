@@ -25,7 +25,7 @@ func main() {
 		log.Fatalf("[boot] configuração inválida: %v", err)
 	}
 
-	log.Printf("[info] validator configs loaded:%s", cfg)
+	logger.Printf("[info] validator configs loaded:%s", cfg)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer cancel()
@@ -101,10 +101,10 @@ fetchLoop:
 		msg, err := kafkaClient.Consumer.FetchMessage(ctx)
 		if err != nil {
 			if errors.Is(err, context.Canceled) {
-				log.Printf("[shutdown] encerrando consumo")
+				logger.Printf("[shutdown] encerrando consumo")
 				break fetchLoop
 			}
-			log.Printf("[error] leitura Kafka: %v", err)
+			logger.Printf("[error] leitura Kafka: %v", err)
 			continue
 		}
 		// log.Printf("[in] partition=%d offset=%d key=%q size=%d ts=%s",
