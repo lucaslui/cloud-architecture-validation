@@ -18,6 +18,12 @@ import (
 	"github.com/lucaslui/hems/batch-loader/internal/storage"
 )
 
+type workResult struct {
+	msg kafka.Message
+	rec data.Record
+	err error
+}
+
 func main() {
 	logger := config.GetLogger()
 
@@ -25,11 +31,17 @@ func main() {
 	if err != nil {
 		logger.Fatalf("[boot] configuração inválida: %v", err)
 	}
-
 	logger.Printf("[info] batch loader configs loaded:%s", cfg)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
+
+	// Garante/cria tópico de entrada com partitions/RF/compression/retention
+	if err := broker.EnsureKafkaTopics(ctx, cfg, logger); err != nil {
+		logger.Fatalf("[error] kafka ensure topics error: %v", err)
+	}
+
+	kafkaClient := broker.NewKafkaClient(cfg)
 
 	minio, err := storage.NewMinIO(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3UseTLS, cfg.S3Bucket)
 	if err != nil {
@@ -39,15 +51,22 @@ func main() {
 		logger.Fatalf("ensure bucket error: %v", err)
 	}
 
-	kafkaClient := broker.NewKafkaClient(cfg)
+	// Batcher central (apenas o aggregator escreve nele)
+	batcher := data.NewBatcher(
+		cfg.BatchMaxRecords,
+		cfg.BatchMaxBytes,
+		cfg.BatchMaxIntervalSec,
+		minio,
+		cfg.S3BasePath,
+		cfg.ParquetCompression,
+		cfg.ParquetWriterParallel,
+	)
 
-	// Pré-aloca o buffer do batcher
-	batcher := data.NewBatcher(cfg.BatchMaxRecords, cfg.BatchMaxBytes, cfg.BatchMaxIntervalSec, minio, cfg.S3BasePath, cfg.ParquetCompression)
+	// Canais com folga para absorver bursts
+	msgCh := make(chan kafka.Message, cfg.MsgChannelBuffer) // fetch → workers
+	resCh := make(chan workResult, cfg.ResultChannelBuffer) // workers → aggregator
 
-	// Canal de ingestão dos fetches
-	msgCh := make(chan kafka.Message, 5000)
-
-	// 1) Fetch goroutine: lê o mais rápido possível
+	// 1) Fetcher: drena Kafka continuamente
 	var fetchWG sync.WaitGroup
 	fetchWG.Add(1)
 	go func() {
@@ -59,18 +78,35 @@ func main() {
 					return
 				}
 				logger.Printf("kafka fetch error: %v", err)
-				time.Sleep(50 * time.Millisecond)
+				time.Sleep(time.Duration(cfg.KafkaFetchRetryMs) * time.Millisecond)
 				continue
 			}
 			msgCh <- m
 		}
 	}()
 
-	// 2) Agregador + flush + commit (loop principal)
-	ticker := time.NewTicker(time.Second) // decide flush periódico
+	// 2) Pool de workers: parse JSON → Record
+	var workersWG sync.WaitGroup
+	workersWG.Add(cfg.ProcessingWorkers)
+	for i := 0; i < cfg.ProcessingWorkers; i++ {
+		go func(id int) {
+			defer workersWG.Done()
+			for m := range msgCh {
+				var evt model.InboundBatchLoaderEnvelope
+				if err := json.Unmarshal(m.Value, &evt); err != nil {
+					resCh <- workResult{msg: m, err: err}
+					continue
+				}
+				resCh <- workResult{msg: m, rec: data.ToRecord(evt)}
+			}
+		}(i)
+	}
+
+	// 3) Aggregator: único que mexe no batcher e no commit
+	ticker := time.NewTicker(time.Duration(cfg.FlushTickMs) * time.Millisecond)
 	defer ticker.Stop()
 
-	// Guardamos o "último" message por partição desde o último flush
+	// guarda o último msg por partição desde o último flush
 	lastByPartition := make(map[int]kafka.Message)
 
 	commitBatch := func() {
@@ -81,10 +117,19 @@ func main() {
 		for _, m := range lastByPartition {
 			acks = append(acks, m)
 		}
-		if err := kafkaClient.Reader.CommitMessages(context.Background(), acks...); err != nil {
-			logger.Printf("commit error: %v", err)
+		// commita em janelas de até KAFKA_ACK_BATCH_SIZE
+		for i := 0; i < len(acks); i += cfg.KafkaAckBatchSize {
+			end := i + cfg.KafkaAckBatchSize
+			if end > len(acks) {
+				end = len(acks)
+			}
+			if err := kafkaClient.Reader.CommitMessages(context.Background(), acks[i:end]...); err != nil {
+				// em erro, mantém lastByPartition para retry no próximo flush
+				logger.Printf("commit error: %v", err)
+				return
+			}
 		}
-		// Limpa janelas de commit para próxima rodada
+		// limpa após commit bem-sucedido
 		lastByPartition = make(map[int]kafka.Message)
 	}
 
@@ -96,55 +141,58 @@ func main() {
 		}
 		if n > 0 {
 			logger.Printf("[flush] %s wrote %d records", reason, n)
-			// Só após persistir no S3 fazemos commit dos offsets incluídos
+			// segurança: commit somente após persistência
 			commitBatch()
 		}
 	}
 
-loop:
-	for {
-		select {
-		case <-ctx.Done():
-			logger.Println("signal received, flushing and stopping...")
-			flushNow("shutdown")
-			break loop
+	// Loop do aggregator
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				logger.Println("signal received, flushing and stopping...")
+				flushNow("shutdown")
+				close(resCh)
+				return
 
-		case <-ticker.C:
-			if batcher.ShouldFlushByInterval() {
-				flushNow("by interval")
-			}
+			case <-ticker.C:
+				if batcher.ShouldFlushByInterval() {
+					flushNow("by interval")
+				}
 
-		case m := <-msgCh:
-			var event model.InboundBatchLoaderEnvelope
-			if err := json.Unmarshal(m.Value, &event); err != nil {
-				logger.Printf("json decode error partition=%d offset=%d: %v", m.Partition, m.Offset, err)
-				// Mensagem inválida: escolha a política (p.ex. pular/estacionar). Aqui apenas ignora.
-				continue
-			}
+			case r, ok := <-resCh:
+				if !ok {
+					return
+				}
+				if r.err != nil {
+					logger.Printf("json decode error partition=%d offset=%d: %v", r.msg.Partition, r.msg.Offset, r.err)
+					continue
+				}
 
-			record := data.ToRecord(event)
-			// logger.Printf("record received partition=%d offset=%d device_id=%s type=%s ts=%s",
-			// 	m.Partition, m.Offset, record.DeviceID, record.EventType,
-			// 	time.UnixMilli(record.Timestamp).UTC().Format(time.RFC3339))
+				if batcher.Add(r.rec) { // atingiu limite por quantidade/bytes
+					flushNow("by size/bytes")
+				}
 
-			// Agrega para flush posterior
-			if batcher.Add(record) {
-				// Se atingiu limite por quantidade/bytes → flush
-				flushNow("by size/bytes")
-			}
+				// marca último offset por partição
+				lastByPartition[r.msg.Partition] = r.msg
 
-			// Marca último offset por partição desde o último flush
-			lastByPartition[m.Partition] = m
-
-			// Mesmo com tráfego contínuo, respeite flush por tempo
-			if batcher.ShouldFlushByInterval() {
-				flushNow("by interval")
+				// garante flush por tempo mesmo sob carga contínua
+				if batcher.ShouldFlushByInterval() {
+					flushNow("by interval")
+				}
 			}
 		}
-	}
+	}()
 
-	// Shutdown ordenado
+	// espera sinal
+	<-ctx.Done()
+
+	// shutdown ordenado
 	close(msgCh)
+	workersWG.Wait()
+	flushNow("finalize")
 	fetchWG.Wait()
+
 	logger.Println("batch-loader stopped")
 }

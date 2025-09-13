@@ -29,9 +29,11 @@ type Batcher struct {
 	S3Client *storage.Client
 	S3Base   string
 	Compress string
+
+	Parallel int64
 }
 
-func NewBatcher(maxRecords int, maxBytes int64, maxIntervalSec int, s3c *storage.Client, basePath, compression string) *Batcher {
+func NewBatcher(maxRecords int, maxBytes int64, maxIntervalSec int, s3c *storage.Client, basePath, compression string, parquetParallel int64) *Batcher {
 	b := &Batcher{
 		MaxRecords:  maxRecords,
 		MaxBytes:    maxBytes,
@@ -39,6 +41,7 @@ func NewBatcher(maxRecords int, maxBytes int64, maxIntervalSec int, s3c *storage
 		S3Client:    s3c,
 		S3Base:      basePath,
 		Compress:    compression,
+		Parallel:    parquetParallel,
 		resetTime:   time.Now().UTC(),
 	}
 	if maxRecords > 0 {
@@ -58,7 +61,7 @@ func (b *Batcher) Flush(ctx context.Context) (int, error) {
 	tmp := filepath.Join(os.TempDir(), fn)
 
 	// 1) cria writer parquet (nova assinatura)
-	pw, closeFn, err := parquetw.NewLocalParquetWriter[Record](tmp, 4, b.Compress)
+	pw, closeFn, err := parquetw.NewLocalParquetWriter[Record](tmp, b.Parallel, b.Compress)
 	if err != nil {
 		return 0, err
 	}

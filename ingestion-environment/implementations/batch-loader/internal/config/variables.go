@@ -18,6 +18,7 @@ type Config struct {
 	KafkaCompression       string
 	KafkaReplicationFactor int
 	KafkaAckBatchSize      int
+	KafkaFetchRetryMs      int // tempo de espera antes de tentar refazer fetch em caso de erro (milissegundos)
 
 	KafkaReaderMinBytes            int
 	KafkaReaderMaxBytes            int
@@ -44,6 +45,11 @@ type Config struct {
 	S3BasePath  string
 
 	ParquetCompression string // "SNAPPY" (recomendado) ou "ZSTD"
+
+	MsgChannelBuffer      int   // = ProcessingWorkers * 2
+	ResultChannelBuffer   int   // = ProcessingWorkers * 2
+	FlushTickMs           int   // frequência de checagem de flush do batcher (milissegundos)
+	ParquetWriterParallel int64 // número de goroutines para escrita parquet (0 = runtime.NumCPU())
 }
 
 func (c *Config) String() string {
@@ -88,7 +94,15 @@ S3:
 
 Parquet:
   Compression:        %s
+
+Channel Buffers & Tuning:
+  MsgChannelBuffer:     %d
+  ResultChannelBuffer:  %d
+  FlushTickMs:          %d
+  ParquetWriterParallel:%d
+  KafkaFetchRetryMs:    %d
 `,
+		// Kafka
 		c.KafkaBrokers,
 		c.KafkaGroupID,
 		c.KafkaReaderTopic,
@@ -98,6 +112,7 @@ Parquet:
 		c.KafkaReplicationFactor,
 		c.KafkaAckBatchSize,
 
+		// Kafka Reader
 		c.KafkaReaderMinBytes,
 		c.KafkaReaderMaxBytes,
 		c.KafkaReaderMaxWaitMs,
@@ -109,12 +124,15 @@ Parquet:
 		c.KafkaReaderReadBackoffMinMs,
 		c.KafkaReaderReadBackoffMaxMs,
 
+		// Workers
 		c.ProcessingWorkers,
 
+		// Batcher
 		c.BatchMaxRecords,
 		c.BatchMaxBytes,
 		c.BatchMaxIntervalSec,
 
+		// S3
 		c.S3Endpoint,
 		c.S3AccessKey,
 		strings.Repeat("*", len(c.S3SecretKey)),
@@ -122,7 +140,15 @@ Parquet:
 		c.S3Bucket,
 		c.S3BasePath,
 
+		// Parquet
 		c.ParquetCompression,
+
+		// Channel Buffers & Tuning
+		c.MsgChannelBuffer,
+		c.ResultChannelBuffer,
+		c.FlushTickMs,
+		c.ParquetWriterParallel,
+		c.KafkaFetchRetryMs,
 	)
 }
 
@@ -248,6 +274,12 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 
 	ParquetCompression := getRequired("PARQUET_COMPRESSION", &errs)
 
+	msgChannelBuffer := getRequiredInt("MSG_CHANNEL_BUFFER", &errs)
+	resultChannelBuffer := getRequiredInt("RESULT_CHANNEL_BUFFER", &errs)
+	flushTickMs := getRequiredInt("FLUSH_TICK_MS", &errs)
+	parquetWriterParallel := getRequiredInt64("PARQUET_WRITER_PARALLEL", &errs)
+	kafkaFetchRetryMs := getRequiredInt("KAFKA_FETCH_RETRY_MS", &errs)
+
 	ensureOneOf("KAFKA_COMPRESSION", kafkaCompression, []string{"none", "gzip", "snappy", "lz4", "zstd"}, &errs)
 
 	if len(kafkaBrokers) == 0 {
@@ -342,6 +374,21 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 	} else {
 		ensureOneOf("PARQUET_COMPRESSION", ParquetCompression, []string{"SNAPPY", "ZSTD"}, &errs)
 	}
+	if msgChannelBuffer <= 0 {
+		errs.add("MSG_CHANNEL_BUFFER deve ser > 0")
+	}
+	if resultChannelBuffer <= 0 {
+		errs.add("RESULT_CHANNEL_BUFFER deve ser > 0")
+	}
+	if flushTickMs <= 0 {
+		errs.add("FLUSH_TICK_MS deve ser > 0")
+	}
+	if parquetWriterParallel <= 0 {
+		errs.add("PARQUET_WRITER_PARALLEL deve ser > 0")
+	}
+	if kafkaFetchRetryMs <= 0 {
+		errs.add("KAFKA_FETCH_RETRY_MS deve ser > 0")
+	}
 
 	if errs.has() {
 		for _, e := range errs {
@@ -385,5 +432,11 @@ func LoadConfig(logger *log.Logger) (*Config, error) {
 		S3BasePath:  S3BasePath,
 
 		ParquetCompression: ParquetCompression,
+
+		MsgChannelBuffer:      msgChannelBuffer,
+		ResultChannelBuffer:   resultChannelBuffer,
+		FlushTickMs:           flushTickMs,
+		ParquetWriterParallel: parquetWriterParallel,
+		KafkaFetchRetryMs:     kafkaFetchRetryMs,
 	}, nil
 }
