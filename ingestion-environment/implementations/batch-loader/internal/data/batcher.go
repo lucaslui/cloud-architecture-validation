@@ -15,7 +15,7 @@ import (
 	"github.com/lucaslui/hems/batch-loader/internal/storage"
 )
 
-type Record = model.OutboundRecord
+type Record = model.OutboundBatchLoaderRecord
 
 type Batcher struct {
 	MaxRecords  int
@@ -31,20 +31,20 @@ type Batcher struct {
 	Compress string
 }
 
-func NewBatcher(maxRecords int, maxBytes int64, maxInterval time.Duration, s3c *storage.Client, basePath, compression string) *Batcher {
-    b := &Batcher{
-        MaxRecords:  maxRecords,
-        MaxBytes:    maxBytes,
-        MaxInterval: maxInterval,
-        S3Client:    s3c,
-        S3Base:      basePath,
-        Compress:    compression,
-        resetTime:   time.Now().UTC(),
-    }
-    if maxRecords > 0 {
-        b.buf = make([]Record, 0, maxRecords) // NOVO: pré-alocação
-    }
-    return b
+func NewBatcher(maxRecords int, maxBytes int64, maxIntervalSec int, s3c *storage.Client, basePath, compression string) *Batcher {
+	b := &Batcher{
+		MaxRecords:  maxRecords,
+		MaxBytes:    maxBytes,
+		MaxInterval: time.Duration(maxIntervalSec) * time.Second,
+		S3Client:    s3c,
+		S3Base:      basePath,
+		Compress:    compression,
+		resetTime:   time.Now().UTC(),
+	}
+	if maxRecords > 0 {
+		b.buf = make([]Record, 0, maxRecords) // NOVO: pré-alocação
+	}
+	return b
 }
 
 func (b *Batcher) Flush(ctx context.Context) (int, error) {
@@ -105,7 +105,7 @@ func (b *Batcher) Flush(ctx context.Context) (int, error) {
 	return n, nil
 }
 
-func ToRecord(evt model.InboundEnvelope) Record {
+func ToRecord(evt model.InboundBatchLoaderEnvelope) Record {
 	return Record{
 		DeviceID:      evt.DeviceID,
 		DeviceType:    evt.DeviceType,
@@ -122,25 +122,25 @@ func ToRecord(evt model.InboundEnvelope) Record {
 		ContractType:   evt.Context.ContractType,
 		Programs:       strings.Join(evt.Context.Programs, ","),
 
-		EventID:        evt.Metadata.EventID,
+		EventID: evt.Metadata.EventID,
 	}
 }
 
 func (b *Batcher) Add(r Record) (shouldFlush bool) {
-    if len(b.buf) == 0 {
-        b.resetTime = time.Now().UTC()
-        b.bytes = 0
-    }
+	if len(b.buf) == 0 {
+		b.resetTime = time.Now().UTC()
+		b.bytes = 0
+	}
 
-    b.buf = append(b.buf, r)
-    b.bytes += int64(len(r.Payload)) + 256
+	b.buf = append(b.buf, r)
+	b.bytes += int64(len(r.Payload)) + 256
 
-    byRecords := b.MaxRecords > 0 && len(b.buf) >= b.MaxRecords
-    byBytes   := b.MaxBytes   > 0 && b.bytes    >= b.MaxBytes
+	byRecords := b.MaxRecords > 0 && len(b.buf) >= b.MaxRecords
+	byBytes := b.MaxBytes > 0 && b.bytes >= b.MaxBytes
 
-    return byRecords || byBytes
+	return byRecords || byBytes
 }
 
 func (b *Batcher) ShouldFlushByInterval() bool {
-    return b.MaxInterval > 0 && len(b.buf) > 0 && time.Since(b.resetTime) >= b.MaxInterval
+	return b.MaxInterval > 0 && len(b.buf) > 0 && time.Since(b.resetTime) >= b.MaxInterval
 }

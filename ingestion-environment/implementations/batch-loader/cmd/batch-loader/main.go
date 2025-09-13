@@ -5,9 +5,9 @@ import (
 	"encoding/json"
 	"errors"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
-	"sync"
 
 	"github.com/segmentio/kafka-go"
 
@@ -19,27 +19,30 @@ import (
 )
 
 func main() {
-	cfg := config.LoadConfig()
+	logger := config.GetLogger()
 
-	cfg.Logger.Printf("[boot] batch-loader | brokers=%s group=%s topic=%s bucket=%s base=%s compression=%s",
-		cfg.KafkaBrokers, cfg.KafkaGroupID, cfg.KafkaTopic, cfg.S3Bucket, cfg.S3BasePath, cfg.ParquetCompression)
+	cfg, err := config.LoadConfig(logger)
+	if err != nil {
+		logger.Fatalf("[boot] configuração inválida: %v", err)
+	}
 
-	cfg.Logger.Printf("[batch] limits: max_records=%d max_bytes=%d max_interval=%s",
-		cfg.BatchMaxRecords, cfg.BatchMaxBytes, cfg.BatchMaxInterval)
+	logger.Printf("[info] batch loader configs loaded:%s", cfg)
 
 	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer cancel()
 
 	minio, err := storage.NewMinIO(cfg.S3Endpoint, cfg.S3AccessKey, cfg.S3SecretKey, cfg.S3UseTLS, cfg.S3Bucket)
-	if err != nil { cfg.Logger.Fatalf("s3 client error: %v", err) }
-	if err := minio.EnsureBucket(ctx); err != nil { cfg.Logger.Fatalf("ensure bucket error: %v", err) }
+	if err != nil {
+		logger.Fatalf("s3 client error: %v", err)
+	}
+	if err := minio.EnsureBucket(ctx); err != nil {
+		logger.Fatalf("ensure bucket error: %v", err)
+	}
 
-	reader := broker.NewKafkaReader(cfg.KafkaBrokers, cfg.KafkaGroupID, cfg.KafkaTopic,
-		cfg.KafkaMinBytes, cfg.KafkaMaxBytes, cfg.KafkaMaxWaitMs)
-	defer reader.Close()
+	kafkaClient := broker.NewKafkaClient(cfg)
 
 	// Pré-aloca o buffer do batcher
-	batcher := data.NewBatcher(cfg.BatchMaxRecords, cfg.BatchMaxBytes, cfg.BatchMaxInterval, minio, cfg.S3BasePath, cfg.ParquetCompression)
+	batcher := data.NewBatcher(cfg.BatchMaxRecords, cfg.BatchMaxBytes, cfg.BatchMaxIntervalSec, minio, cfg.S3BasePath, cfg.ParquetCompression)
 
 	// Canal de ingestão dos fetches
 	msgCh := make(chan kafka.Message, 5000)
@@ -50,12 +53,12 @@ func main() {
 	go func() {
 		defer fetchWG.Done()
 		for {
-			m, err := reader.FetchMessage(ctx)
+			m, err := kafkaClient.Reader.FetchMessage(ctx)
 			if err != nil {
 				if errors.Is(err, context.Canceled) {
 					return
 				}
-				cfg.Logger.Printf("kafka fetch error: %v", err)
+				logger.Printf("kafka fetch error: %v", err)
 				time.Sleep(50 * time.Millisecond)
 				continue
 			}
@@ -70,27 +73,29 @@ func main() {
 	// Guardamos o "último" message por partição desde o último flush
 	lastByPartition := make(map[int]kafka.Message)
 
-commitBatch := func() {
-		if len(lastByPartition) == 0 { return }
+	commitBatch := func() {
+		if len(lastByPartition) == 0 {
+			return
+		}
 		acks := make([]kafka.Message, 0, len(lastByPartition))
 		for _, m := range lastByPartition {
 			acks = append(acks, m)
 		}
-		if err := reader.CommitMessages(context.Background(), acks...); err != nil {
-			cfg.Logger.Printf("commit error: %v", err)
+		if err := kafkaClient.Reader.CommitMessages(context.Background(), acks...); err != nil {
+			logger.Printf("commit error: %v", err)
 		}
 		// Limpa janelas de commit para próxima rodada
 		lastByPartition = make(map[int]kafka.Message)
 	}
 
-flushNow := func(reason string) {
+	flushNow := func(reason string) {
 		n, err := batcher.Flush(ctx)
 		if err != nil {
-			cfg.Logger.Printf("flush error (%s): %v", reason, err)
+			logger.Printf("flush error (%s): %v", reason, err)
 			return
 		}
 		if n > 0 {
-			cfg.Logger.Printf("[flush] %s wrote %d records", reason, n)
+			logger.Printf("[flush] %s wrote %d records", reason, n)
 			// Só após persistir no S3 fazemos commit dos offsets incluídos
 			commitBatch()
 		}
@@ -100,7 +105,7 @@ loop:
 	for {
 		select {
 		case <-ctx.Done():
-			cfg.Logger.Println("signal received, flushing and stopping...")
+			logger.Println("signal received, flushing and stopping...")
 			flushNow("shutdown")
 			break loop
 
@@ -110,17 +115,17 @@ loop:
 			}
 
 		case m := <-msgCh:
-			var event model.InboundEnvelope
+			var event model.InboundBatchLoaderEnvelope
 			if err := json.Unmarshal(m.Value, &event); err != nil {
-				cfg.Logger.Printf("json decode error partition=%d offset=%d: %v", m.Partition, m.Offset, err)
+				logger.Printf("json decode error partition=%d offset=%d: %v", m.Partition, m.Offset, err)
 				// Mensagem inválida: escolha a política (p.ex. pular/estacionar). Aqui apenas ignora.
 				continue
 			}
 
 			record := data.ToRecord(event)
-			cfg.Logger.Printf("record received partition=%d offset=%d device_id=%s type=%s ts=%s",
-				m.Partition, m.Offset, record.DeviceID, record.EventType,
-				time.UnixMilli(record.Timestamp).UTC().Format(time.RFC3339))
+			// logger.Printf("record received partition=%d offset=%d device_id=%s type=%s ts=%s",
+			// 	m.Partition, m.Offset, record.DeviceID, record.EventType,
+			// 	time.UnixMilli(record.Timestamp).UTC().Format(time.RFC3339))
 
 			// Agrega para flush posterior
 			if batcher.Add(record) {
@@ -141,5 +146,5 @@ loop:
 	// Shutdown ordenado
 	close(msgCh)
 	fetchWG.Wait()
-	cfg.Logger.Println("batch-loader stopped")
+	logger.Println("batch-loader stopped")
 }

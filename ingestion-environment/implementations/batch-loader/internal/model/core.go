@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type InboundEnvelope struct {
+type InboundBatchLoaderEnvelope struct {
 	DeviceID      string          `json:"deviceId"`
 	DeviceType    string          `json:"deviceType"`
 	EventType     string          `json:"eventType"`
@@ -30,7 +30,7 @@ type InboundEnvelope struct {
 }
 
 // Estrutura "bronze semiestruturada" — payload_json guarda leituras dinâmicas
-type OutboundRecord struct {
+type OutboundBatchLoaderRecord struct {
 	DeviceID      string `parquet:"name=device_id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	DeviceType    string `parquet:"name=device_type, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	EventType     string `parquet:"name=event_type, type=BYTE_ARRAY, convertedtype=UTF8"`
@@ -45,8 +45,8 @@ type OutboundRecord struct {
 	EndUserID      string `parquet:"name=end_user_id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	ContractType   string `parquet:"name=contract_type, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 	Programs       string `parquet:"name=programs, type=BYTE_ARRAY, convertedtype=UTF8"`
-	
-	EventID       string `parquet:"name=event_id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
+
+	EventID string `parquet:"name=event_id, type=BYTE_ARRAY, convertedtype=UTF8, encoding=PLAIN_DICTIONARY"`
 }
 
 func ToMillis(t time.Time) int64 { return t.UTC().UnixNano() / 1e6 }
