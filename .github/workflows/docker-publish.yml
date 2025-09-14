@@ -1,0 +1,85 @@
+name: Publish Docker Images (latest only)
+
+on:
+  push:
+    branches: [ "main" ] # qualquer commit direto na main
+    paths:
+      - "implementations/**"
+      - ".github/workflows/docker-publish.yml"
+  workflow_dispatch: # opcional: disparo manual
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  DOCKERHUB_ORG: ${{ vars.DOCKERHUB_ORG || secrets.DOCKERHUB_USERNAME }}
+
+concurrency:
+  group: docker-publish-main
+  cancel-in-progress: true
+
+jobs:
+  build-and-push:
+    name: Build & Push (${{ matrix.name }})
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: collector
+            context: implementations/collector
+            dockerfile: implementations/collector/Dockerfile
+            image: collector
+
+          - name: validator
+            context: implementations/validator
+            dockerfile: implementations/validator/Dockerfile
+            image: validator
+
+          - name: schema-loader
+            context: implementations/schema-registry
+            dockerfile: implementations/schema-registry/Dockerfile
+            image: schema-loader
+            
+          - name: enricher
+            context: implementations/enricher
+            dockerfile: implementations/enricher/Dockerfile
+            image: enricher
+
+          - name: real-time-loader
+            context: implementations/real-time-loader
+            dockerfile: implementations/real-time-loader/Dockerfile
+            image: real-time-loader
+
+          - name: batch-loader
+            context: implementations/batch-loader
+            dockerfile: implementations/batch-loader/Dockerfile
+            image: batch-loader
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build & Push (multi-arch, tag=latest)
+        uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.dockerfile }}
+          platforms: linux/amd64,linux/arm64
+          push: true
+          tags: ${{ env.DOCKERHUB_ORG }}/${{ matrix.image }}:latest
+          cache-from: type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ matrix.image }}:buildcache
+          cache-to: type=registry,ref=${{ env.DOCKERHUB_ORG }}/${{ matrix.image }}:buildcache,mode=max
