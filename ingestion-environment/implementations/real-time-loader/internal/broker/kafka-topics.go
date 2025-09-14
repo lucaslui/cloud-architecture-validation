@@ -6,19 +6,44 @@ import (
 	"log"
 	"net"
 	"strconv"
+	"time"
 
 	"github.com/segmentio/kafka-go"
 
 	"github.com/lucaslui/hems/real-time-loader/internal/config"
 )
 
-func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logger) error {
-	bootstrap := cfg.KafkaBrokers[0]
-	logger.Printf("[info] kafka ensuring topics on bootstrap %s", bootstrap)
+func dialAnyBroker(ctx context.Context, brokers []string, perAttempt time.Duration, logger *log.Logger) (*kafka.Conn, string, error) {
+	var lastErr error
+	for _, b := range brokers {
+		dctx, cancel := context.WithTimeout(ctx, perAttempt)
+		conn, err := kafka.DialContext(dctx, "tcp", b)
+		cancel()
+		if err == nil {
+			logger.Printf("[info] kafka connected to bootstrap %s", b)
+			return conn, b, nil
+		}
+		lastErr = err
+		logger.Printf("[warn] kafka cannot connect to %s: %v (trying next)", b, err)
+	}
+	if lastErr == nil {
+		lastErr = fmt.Errorf("no brokers provided")
+	}
+	return nil, "", lastErr
+}
 
-	conn, err := kafka.DialContext(ctx, "tcp", bootstrap)
+func dialController(ctx context.Context, ctrl kafka.Broker, perAttempt time.Duration) (*kafka.Conn, error) {
+	addr := net.JoinHostPort(ctrl.Host, strconv.Itoa(ctrl.Port))
+	dctx, cancel := context.WithTimeout(ctx, perAttempt)
+	defer cancel()
+	return kafka.DialContext(dctx, "tcp", addr)
+}
+
+func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logger) error {
+	const perAttempt = 5 * time.Second
+	conn, bootstrap, err := dialAnyBroker(ctx, cfg.KafkaBrokers, perAttempt, logger)
 	if err != nil {
-		return err
+		return fmt.Errorf("bootstrap connect failed (tried %v): %w", cfg.KafkaBrokers, err)
 	}
 	defer conn.Close()
 
@@ -29,12 +54,26 @@ func EnsureKafkaTopics(ctx context.Context, cfg *config.Config, logger *log.Logg
 
 	controller, err := conn.Controller()
 	if err != nil {
-		return err
+		return fmt.Errorf("read controller from %s failed: %w", bootstrap, err)
 	}
-	ctrlAddr := net.JoinHostPort(controller.Host, strconv.Itoa(controller.Port))
-	ctrlConn, err := kafka.DialContext(ctx, "tcp", ctrlAddr)
+
+	ctrlConn, err := dialController(ctx, controller, perAttempt)
 	if err != nil {
-		return err
+		_ = conn.Close()
+		conn2, bootstrap2, err2 := dialAnyBroker(ctx, cfg.KafkaBrokers, perAttempt, logger)
+		if err2 != nil {
+			return fmt.Errorf("controller connect failed (fallback): %w (first error: %v)", err2, err)
+		}
+		defer conn2.Close()
+
+		controller2, err2 := conn2.Controller()
+		if err2 != nil {
+			return fmt.Errorf("read controller (fallback) failed from %s: %w (first error: %v)", bootstrap2, err2, err)
+		}
+		ctrlConn, err = dialController(ctx, controller2, perAttempt)
+		if err != nil {
+			return fmt.Errorf("controller dial failed (second attempt): %w (first error: %v)", err, err)
+		}
 	}
 	defer ctrlConn.Close()
 
