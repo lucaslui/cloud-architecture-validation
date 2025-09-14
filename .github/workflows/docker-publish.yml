@@ -28,33 +28,33 @@ jobs:
       matrix:
         include:
           - name: collector
-            context: implementations/collector
-            dockerfile: implementations/collector/Dockerfile
+            context: ingestion-environment/implementations/collector
+            dockerfile: ingestion-environment/implementations/collector/Dockerfile
             image: collector
 
           - name: validator
-            context: implementations/validator
-            dockerfile: implementations/validator/Dockerfile
+            context: ingestion-environment/implementations/validator
+            dockerfile: ingestion-environment/implementations/validator/Dockerfile
             image: validator
 
           - name: schema-loader
-            context: implementations/schema-registry
-            dockerfile: implementations/schema-registry/Dockerfile
+            context: ingestion-environment/implementations/schema-registry
+            dockerfile: ingestion-environment/implementations/schema-registry/Dockerfile
             image: schema-loader
-            
+
           - name: enricher
-            context: implementations/enricher
-            dockerfile: implementations/enricher/Dockerfile
+            context: ingestion-environment/implementations/enricher
+            dockerfile: ingestion-environment/implementations/enricher/Dockerfile
             image: enricher
 
           - name: real-time-loader
-            context: implementations/real-time-loader
-            dockerfile: implementations/real-time-loader/Dockerfile
+            context: ingestion-environment/implementations/real-time-loader
+            dockerfile: ingestion-environment/implementations/real-time-loader/Dockerfile
             image: real-time-loader
 
           - name: batch-loader
-            context: implementations/batch-loader
-            dockerfile: implementations/batch-loader/Dockerfile
+            context: ingestion-environment/implementations/batch-loader
+            dockerfile: ingestion-environment/implementations/batch-loader/Dockerfile
             image: batch-loader
 
     steps:
