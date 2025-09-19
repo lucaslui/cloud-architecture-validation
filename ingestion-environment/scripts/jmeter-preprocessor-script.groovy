@@ -24,15 +24,11 @@ def entries = [
 if (entries.isEmpty()) throw new IllegalStateException('Nenhum payload Telemetry encontrado.')
 
 // ===================== Identificadores por thread =====================
-int houseNumber = ctx.getThreadNum() + 1
-String HOUSE_NUMBER = String.valueOf(houseNumber)
+String HOME_NUMBER = vars.get('HOME_NUMBER')
 
-// controllerId único por thread (persistido em vars)
-String controllerId = vars.get('CONTROLLER_ID')
-if (!controllerId) {
-  controllerId = java.util.UUID.randomUUID().toString()
-  vars.put('CONTROLLER_ID', controllerId)
-}
+// controllerId baseado no HOME_NUMBER
+String controllerId = "CONTROLLER-${HOME_NUMBER}"
+vars.put('CONTROLLER_ID', controllerId)
 
 // ===================== controllerTimestamp ÚNICO (do lote) =====================
 String controllerTimestamp = java.time.ZonedDateTime
@@ -64,7 +60,7 @@ def readAndPrepare = { Map entry ->
 
   // Substituições críticas
   raw = raw
-    .replace('${HOME_NUMBER}', HOUSE_NUMBER)
+    .replace('${HOME_NUMBER}', HOME_NUMBER)
     .replace('${TIMESTAMP}', deviceTimestamp)
 
   if (raw.contains('${HOME_NUMBER}') || raw.contains('${TIMESTAMP}')) {
@@ -106,7 +102,6 @@ def readAndPrepare = { Map entry ->
     if ((v instanceof String) && (v ==~ /-?\d+(\.\d+)?/)) [(k): new BigDecimal(v)] else [(k): v]
   }
 
-  // Retorna o objeto Telemetry
   return parsed
 }
 

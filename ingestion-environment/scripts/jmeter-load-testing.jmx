@@ -39,7 +39,7 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters">
         <collectionProp name="Arguments.arguments">
           <elementProp name="NumberHomes" elementType="Argument">
             <stringProp name="Argument.name">NumberHomes</stringProp>
@@ -100,7 +100,7 @@
           <longProp name="timeoutInMs">10000</longProp>
         </SyncTimer>
         <hashTree/>
-        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter" enabled="true">
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter">
           <stringProp name="CounterConfig.start">1</stringProp>
           <stringProp name="CounterConfig.end"></stringProp>
           <stringProp name="CounterConfig.incr">1</stringProp>
