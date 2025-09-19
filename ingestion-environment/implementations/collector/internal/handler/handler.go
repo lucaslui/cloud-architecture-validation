@@ -20,14 +20,9 @@ func HandleMessage(ctx context.Context, cfg *config.Config, logger *log.Logger, 
 	collectedAt := time.Now().UTC()
 	raw := msg.Payload()
 
-	// cfg.Logger.Printf("mqtt rx: topic=%s qos=%d mid=%d retained=%v bytes=%d payload=%s",
-	// 	msg.Topic(), msg.Qos(), msg.MessageID(), msg.Retained(), len(raw), validate.Truncate(raw, 512),
-	// )
-
-	env, err := validate.ValidatePayload(raw)
-
+	agg, err := validate.ValidateAggregated(raw)
 	if err != nil {
-		logger.Printf("[error] invalid payload — sending to DLQ: %v | message: %s", err, validate.Truncate(raw, 512))
+		logger.Printf("[error] invalid aggregated payload — DLQ: %v | message: %s", err, validate.Truncate(raw, 512))
 		dlq := map[string]any{
 			"error":      err.Error(),
 			"original":   json.RawMessage(raw),
@@ -35,38 +30,37 @@ func HandleMessage(ctx context.Context, cfg *config.Config, logger *log.Logger, 
 			"receivedAt": collectedAt.Format(time.RFC3339Nano),
 		}
 		buf, _ := json.Marshal(dlq)
-		if err := prod.SendDLQ(ctx, []byte("invalid"), buf); err != nil {
-			logger.Printf("[error] kafka write error (dlq): %v", err)
-		} else {
-			logger.Printf("[info] dlq OK: topic=%s bytes=%d", cfg.KafkaDLQTopic, len(buf))
+		_ = prod.SendDLQ(ctx, []byte("invalid"), buf)
+		return
+	}
+
+	for _, item := range agg.Payload {
+		out := model.OutboundCollectorEnvelope{
+			InboundCollectorEnvelope: item,
+			Metadata: model.OutboundCollectorMetadata{
+				ControllerID:        agg.ControllerID,
+				ControllerTimestamp: agg.ControllerTimestamp,
+				EventID:             uuid.NewString(),
+				CollectedAt:         collectedAt,
+			},
 		}
-		return
+		value, err := json.Marshal(out)
+		if err != nil {
+			logger.Printf("[error] json marshal error: %v", err)
+			continue
+		}
+
+		key := []byte(item.DeviceID)
+		if len(key) == 0 {
+			key = []byte("unknown-device")
+		}
+
+		disp.Enqueue(kafka.Message{
+			Key:     key,
+			Value:   value,
+			Headers: []kafka.Header{{Key: "receivedAt", Value: []byte(collectedAt.Format(time.RFC3339Nano))}},
+		})
 	}
 
-	out := model.OutboundCollectorEnvelope{
-		InboundCollectorEnvelope: env,
-		Metadata: model.OutboundCollectorMetadata{
-			EventID:     uuid.NewString(),
-			CollectedAt: collectedAt,
-		},
-	}
-
-	value, err := json.Marshal(out)
-
-	if err != nil {
-		logger.Printf("[error] json marshal error: %v", err)
-		return
-	}
-
-	key := []byte(env.DeviceID)
-
-	if len(key) == 0 {
-		key = []byte("unknown-device")
-	}
-
-	disp.Enqueue(kafka.Message{
-		Key:     key,
-		Value:   value,
-		Headers: []kafka.Header{{Key: "receivedAt", Value: []byte(collectedAt.Format(time.RFC3339Nano))}},
-	})
+	// logger.Printf("[info] aggregated OK: controller=%s items=%d", agg.ControllerID, len(agg.Payload))
 }

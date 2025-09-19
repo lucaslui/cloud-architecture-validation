@@ -2,6 +2,12 @@ package model
 
 import "time"
 
+type InboundAggregatedEnvelope struct {
+	ControllerID        string                     `json:"controllerId"`
+	ControllerTimestamp *time.Time                 `json:"controllerTimestamp"`
+	Payload             []InboundCollectorEnvelope `json:"payload"`
+}
+
 type InboundCollectorEnvelope struct {
 	DeviceID      string         `json:"deviceId"`
 	DeviceType    string         `json:"deviceType"`
@@ -17,6 +23,8 @@ type OutboundCollectorEnvelope struct {
 }
 
 type OutboundCollectorMetadata struct {
-	EventID     string    `json:"eventId"`
-	CollectedAt time.Time `json:"collectedAt"`
+	ControllerID        string     `json:"controllerId"`
+	ControllerTimestamp *time.Time `json:"controllerTimestamp"`
+	EventID             string     `json:"eventId"`
+	CollectedAt         time.Time  `json:"collectedAt"`
 }
