@@ -39,11 +39,11 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Scenario Parameters" enabled="true">
         <collectionProp name="Arguments.arguments">
           <elementProp name="NumberHomes" elementType="Argument">
             <stringProp name="Argument.name">NumberHomes</stringProp>
-            <stringProp name="Argument.value">50</stringProp>
+            <stringProp name="Argument.value">5</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="NumberMessages" elementType="Argument">
@@ -109,9 +109,9 @@
           <boolProp name="CounterConfig.per_user">false</boolProp>
         </CounterConfig>
         <hashTree/>
-        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller" enabled="true"/>
+        <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller"/>
         <hashTree>
-          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher" enabled="true">
+          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher">
             <stringProp name="mqtt.server">${BrokerHost}</stringProp>
             <stringProp name="mqtt.port">${BrokerPort}</stringProp>
             <stringProp name="mqtt.version">3.1.1</stringProp>
@@ -121,10 +121,10 @@
             <boolProp name="mqtt.dual_ssl_authentication">false</boolProp>
             <stringProp name="mqtt.clientcert_file_path"></stringProp>
             <stringProp name="mqtt.clientcert_password"></stringProp>
-            <stringProp name="mqtt.user_name"></stringProp>
-            <stringProp name="mqtt.password"></stringProp>
-            <stringProp name="mqtt.client_id_prefix">conn_pub_</stringProp>
-            <boolProp name="mqtt.client_id_suffix">true</boolProp>
+            <stringProp name="mqtt.user_name">CONTROLLER-${HOME_NUMBER}</stringProp>
+            <stringProp name="mqtt.password">minha-senha-forte</stringProp>
+            <stringProp name="mqtt.client_id_prefix">CONTROLLER-${HOME_NUMBER}</stringProp>
+            <boolProp name="mqtt.client_id_suffix">false</boolProp>
             <stringProp name="mqtt.conn_keep_alive">600</stringProp>
             <stringProp name="mqtt.conn_attampt_max">0</stringProp>
             <stringProp name="mqtt.reconn_attampt_max">0</stringProp>
