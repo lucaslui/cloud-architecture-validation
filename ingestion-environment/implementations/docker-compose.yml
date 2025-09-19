@@ -1,21 +1,4 @@
 services:
-  vernemq:
-    image: vernemq/vernemq:latest
-    container_name: vernemq
-    environment:
-      - DOCKER_VERNEMQ_ACCEPT_EULA=yes
-      - DOCKER_VERNEMQ_ALLOW_ANONYMOUS=on
-      - DOCKER_VERNEMQ_LISTENER__TCP__DEFAULT=0.0.0.0:1883
-      - DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL=info
-    ports:
-      - "1883:1883"
-    healthcheck:
-      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/1883'"]
-      interval: 5s
-      timeout: 5s
-      retries: 30
-      start_period: 60s
-
   kafka:
     image: bitnami/kafka:3.7
     container_name: kafka
@@ -70,6 +53,35 @@ services:
       timeout: 2s
       retries: 20
   
+  vernemq:
+    image: vernemq/vernemq:latest
+    container_name: vernemq
+    environment:
+      - DOCKER_VERNEMQ_ACCEPT_EULA=yes
+      - DOCKER_VERNEMQ_ALLOW_ANONYMOUS=off
+      - DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST=0.0.0.0:1883
+      - DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL=info
+      # Enable plugins
+      - DOCKER_VERNEMQ_PLUGINS__VMQ_DIVERSITY=on
+      - DOCKER_VERNEMQ_PLUGINS__VMQ_PASSWD=off
+      - DOCKER_VERNEMQ_PLUGINS__VMQ_ACL=off
+      # Authentication with Redis
+      - DOCKER_VERNEMQ_VMQ_DIVERSITY__AUTH_REDIS__ENABLED=on
+      - DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__HOST=redis
+      - DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__PORT=6379
+      - DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__DATABASE=0
+    ports:
+      - "1883:1883"
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "timeout 2 bash -c '</dev/tcp/127.0.0.1/1883'"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+
   influxdb:
     image: influxdb:2.7
     container_name: influxdb
@@ -132,13 +144,34 @@ services:
     container_name: schema-loader
     restart: "no"
     environment:
-      - SCHEMA_REGISTRY_FS_ROOT=/app
       - REDIS_ADDR=redis:6379
+      - SCHEMA_REGISTRY_FS_ROOT=/app
       - SCHEMA_TTL_SECONDS=0
     depends_on:
       redis:
         condition: service_healthy
     entrypoint: ["/app/schema-loader"]
+
+  cred-perm-loader:
+    build: ./cred-perm-loader
+    container_name: cred-perm-loader
+    restart: "no"
+    environment:
+      - REDIS_ADDR=redis:6379
+      - AUTH_PASSWORD=minha-senha-forte
+      - TELEMETRY_TOPIC=ingestion/telemetry
+      - COMMANDS_TOPIC_PREFIX=ingestion/commands
+      - START_ID=1
+      - END_ID=10000
+      - BATCH_SIZE=2000
+      - COLLECTOR_USERNAME=hems-collector
+      - COLLECTOR_PASSWORD=senha-coletor
+    depends_on:
+      redis:
+        condition: service_healthy
+    entrypoint: ["/app/cred-perm-loader"]
+
+  # =========================================================================================================
 
   collector:
     build: ./collector
@@ -150,6 +183,8 @@ services:
       - MQTT_TOPIC=ingestion/telemetry
       - MQTT_QOS=0
       - MQTT_CHANNEL_DEPTH=20000
+      - MQTT_USERNAME=hems-collector
+      - MQTT_PASSWORD=senha-coletor
       # =============================
       - KAFKA_BROKERS=kafka:9092
       - KAFKA_TOPIC=raw-events-topic
@@ -179,6 +214,8 @@ services:
         condition: service_healthy
       kafka:
         condition: service_healthy
+      cred-perm-loader:
+        condition: service_completed_successfully
 
   validator:
     build: ./validator
