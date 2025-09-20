@@ -42,6 +42,10 @@ jobs:
             dockerfile: ingestion-environment/implementations/schema-registry/Dockerfile
             image: schema-loader
 
+          - name: cred-perm-loader
+            context: ingestion-environment/implementations/cred-perm-loader
+            dockerfile: ingestion-environment/implementations/cred-perm-loader/Dockerfile
+            image: cred-perm-loader
           - name: enricher
             context: ingestion-environment/implementations/enricher
             dockerfile: ingestion-environment/implementations/enricher/Dockerfile
