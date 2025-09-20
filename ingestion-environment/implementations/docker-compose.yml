@@ -158,6 +158,8 @@ services:
     restart: "no"
     environment:
       - REDIS_ADDR=redis:6379
+      - REDIS_DB=0
+      # - REDIS_PASSWORD=your_redis_password_here
       - AUTH_PASSWORD=minha-senha-forte
       - TELEMETRY_TOPIC=ingestion/telemetry
       - COMMANDS_TOPIC_PREFIX=ingestion/commands
