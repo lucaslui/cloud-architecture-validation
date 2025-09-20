@@ -1,0 +1,125 @@
+nameOverride: ""
+fullnameOverride: ""
+
+image:
+  repository: vernemq/vernemq
+  tag: 1.12.3
+  pullPolicy: IfNotPresent
+
+replicaCount: 1
+
+# Variáveis de ambiente do VerneMQ (modo docker) para liberar anônimos e simplificar
+additionalEnv:
+  - name: DOCKER_VERNEMQ_ACCEPT_EULA
+    value: "yes"
+
+  - name: DOCKER_VERNEMQ_ALLOW_ANONYMOUS
+    value: "on"
+
+  - name: DOCKER_VERNEMQ_PLUGINS__VMQ_PASSWD
+    value: "off"
+  - name: DOCKER_VERNEMQ_PLUGINS__VMQ_ACL
+    value: "off"
+
+  # ÚNICO listener que queremos: MQTT TCP puro na 1883
+  - name: DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST
+    value: "0.0.0.0:1883"
+
+  # (opcional) verbosidade de log
+  - name: DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL
+    value: "info"
+
+  # (opcional) facilitar PoC em netsplit
+  - name: DOCKER_VERNEMQ_ALLOW_REGISTER_DURING_NETSPLIT
+    value: "on"
+  - name: DOCKER_VERNEMQ_ALLOW_PUBLISH_DURING_NETSPLIT
+    value: "on"
+  - name: DOCKER_VERNEMQ_ALLOW_SUBSCRIBE_DURING_NETSPLIT
+    value: "on"
+  - name: DOCKER_VERNEMQ_ALLOW_UNSUBSCRIBE_DURING_NETSPLIT
+    value: "on"
+
+envFrom: []
+
+service:
+  type: NodePort
+  mqtt:
+    enabled: true
+    port: 1883
+    nodePort: 31883
+  mqtts:
+    enabled: false
+  ws:
+    enabled: false
+  wss:
+    enabled: false
+
+ingress:
+  enabled: false
+  annotations: {}
+  hosts: []
+  paths: ["/"]
+  tls: []
+
+persistentVolume:
+  enabled: false # para teste simples; usa emptyDir
+  size: 5Gi
+  accessModes: ["ReadWriteOnce"]
+  annotations: {}
+
+resources: {}
+nodeSelector: {}
+tolerations: []
+podAntiAffinity: soft
+
+securityContext:
+  runAsUser: 10000
+  runAsGroup: 10000
+  fsGroup: 10000
+
+rbac:
+  create: true
+  serviceAccount:
+    create: true
+
+statefulset:
+  podAnnotations: {}
+  annotations: {}
+  labels: {}
+  lifecycle: {}
+  podManagementPolicy: OrderedReady
+  updateStrategy: RollingUpdate
+  terminationGracePeriodSeconds: 60
+  livenessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+  readinessProbe:
+    initialDelaySeconds: 90
+    periodSeconds: 10
+    timeoutSeconds: 5
+    successThreshold: 1
+    failureThreshold: 3
+
+secretMounts: []
+extraVolumes: []
+extraVolumeMounts: []
+
+pdb:
+  enabled: false
+  minAvailable: 1
+
+serviceMonitor:
+  create: false
+  labels: {}
+
+global:
+  cattle:
+    clusterId: c-m-sqk55kdr
+    clusterName: cloud-architecture-validation
+    rkePathPrefix: ""
+    rkeWindowsPathPrefix: ""
+    systemProjectId: p-hmqtg
+    url: https://rancher.172-104-5-78.sslip.io
