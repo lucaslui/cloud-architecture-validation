@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: collector
+  namespace: ingestion-environment-namespace
+  labels:
+    app: collector
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: collector
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: collector
+    spec:
+      serviceAccountName: default
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: collector
+          image: lucaslui/collector:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: collector-config
+          env:
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: collector-auth
+                  key: COLLECTOR_PASSWORD
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      restartPolicy: Always

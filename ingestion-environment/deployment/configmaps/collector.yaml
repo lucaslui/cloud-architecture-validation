@@ -1,0 +1,36 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: collector-config
+  namespace: ingestion-environment-namespace
+data:
+  MQTT_BROKER_URL: "tcp://vernemq:1883"
+  MQTT_CLIENT_ID: "hems-collector"
+  MQTT_TOPIC: "ingestion/telemetry"
+  MQTT_QOS: "0"
+  MQTT_CHANNEL_DEPTH: "20000"
+  MQTT_USERNAME: "hems-collector"
+
+  KAFKA_BROKERS: "kafka:9092"
+  KAFKA_TOPIC: "raw-events-topic"
+  KAFKA_DLQ_TOPIC: "raw-events-dlq"
+  KAFKA_TOPIC_PARTITIONS: "6"
+  KAFKA_DLQ_PARTITIONS: "1"
+  KAFKA_REPLICATION_FACTOR: "1"
+  KAFKA_BATCH_SIZE: "5000"
+  KAFKA_BATCH_BYTES: "4194304"
+  KAFKA_BATCH_TIMEOUT_MS: "25"
+  KAFKA_COMPRESSION: "snappy"
+  KAFKA_REQUIRED_ACKS: "one"
+  KAFKA_MAX_ATTEMPTS: "10"
+  KAFKA_RETENTION_MS: "86400000"
+
+  PROCESSING_WORKERS: "8"
+
+  WORKER_QUEUE_SIZE: "50000"
+  WORK_QUEUE_STRATEGY: "block"
+  WORK_QUEUE_ENQ_TIMEOUT_MS: "100"
+
+  DISPATCHER_CAPACITY: "50000"
+  DISPATCHER_MAX_BATCH: "5000"
+  DISPATCHER_TICK_MS: "20"
