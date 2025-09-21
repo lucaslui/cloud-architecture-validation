@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: validator
+  namespace: ingestion-environment-namespace
+  labels:
+    app: validator
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: validator
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: validator
+    spec:
+      serviceAccountName: default
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: validator
+          image: lucaslui/validator:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: validator-config
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      restartPolicy: Always
