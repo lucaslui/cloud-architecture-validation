@@ -42,10 +42,17 @@ func NewKafkaProducer(cfg *config.Config, topic string) *kafka.Writer {
 }
 
 func NewKafkaConsumer(cfg *config.Config) *kafka.Reader {
+	dialer := &kafka.Dialer{
+		Timeout:   10 * time.Second,
+		KeepAlive: 30 * time.Second,
+		DualStack: true,
+	}
+
 	return kafka.NewReader(kafka.ReaderConfig{
 		Brokers: cfg.KafkaBrokers,
 		GroupID: cfg.KafkaGroupID,
 		Topic:   cfg.KafkaReaderTopic,
+		Dialer:  dialer,
 
 		// Tuning específico do reader:
 		MinBytes:      cfg.KafkaReaderMinBytes,
@@ -53,8 +60,8 @@ func NewKafkaConsumer(cfg *config.Config) *kafka.Reader {
 		MaxWait:       time.Duration(cfg.KafkaReaderMaxWaitMs) * time.Millisecond,
 		QueueCapacity: cfg.KafkaReaderQueueCapacity,
 
-		ReadLagInterval: time.Duration(cfg.KafkaReaderReadLagIntervalMs) * time.Millisecond, // use -1 -> Duration(-1ms)
-
+		ReadLagInterval:       time.Duration(cfg.KafkaReaderReadLagIntervalMs) * time.Millisecond, // use -1 -> Duration(-1ms)
+		WatchPartitionChanges: false,
 		// Estabilidade de grupo:
 		SessionTimeout:    time.Duration(cfg.KafkaReaderSessionTimeoutMs) * time.Millisecond,
 		HeartbeatInterval: time.Duration(cfg.KafkaReaderHeartbeatIntervalMs) * time.Millisecond,
