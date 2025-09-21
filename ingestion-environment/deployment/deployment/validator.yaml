@@ -32,6 +32,12 @@ spec:
           envFrom:
             - configMapRef:
                 name: validator-config
+          env:
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: REDIS_PASSWORD
           resources:
             requests:
               cpu: "250m"
