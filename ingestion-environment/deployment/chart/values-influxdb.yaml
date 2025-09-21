@@ -1,0 +1,59 @@
+image:
+  repository: influxdb
+  tag: 2.7.4-alpine
+  pullPolicy: IfNotPresent
+
+fullnameOverride: "influxdb"
+
+resources:
+  requests:
+    cpu: 250m
+    memory: 512Mi
+  limits:
+    cpu: "1"
+    memory: 1Gi
+
+service:
+  type: ClusterIP
+  port: 80
+  targetPort: 8086
+  annotations: {}
+  labels: {}
+  portName: http
+
+persistence:
+  enabled: true
+  accessMode: ReadWriteOnce
+  size: 10Gi
+  storageClass: "longhorn"
+  mountPath: /var/lib/influxdb2
+
+adminUser:
+  user: "admin"
+  organization: "hems"
+  bucket: "hems_timeseries"
+  retention_policy: "0s"
+  existingSecret: "influxdb-auth"
+
+ingress:
+  enabled: false
+  tls: false
+  hostname: influxdb.foobar.com
+  annotations: {}
+  path: /
+
+pdb:
+  create: false
+
+serviceAccount:
+  create: true
+  name: "influxdb"
+  annotations: {}
+
+## Customize liveness, readiness and startup probes
+startupProbe:
+  enabled: false
+livenessProbe:
+  enabled: true
+readinessProbe:
+  enabled: true
