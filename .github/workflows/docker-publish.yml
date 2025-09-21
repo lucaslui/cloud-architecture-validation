@@ -4,7 +4,7 @@ on:
   push:
     branches: [ "main" ] # qualquer commit direto na main
     paths:
-      - "implementations/**"
+      - "./ingestion-environment/implementations/**"
       - ".github/workflows/docker-publish.yml"
   workflow_dispatch: # opcional: disparo manual
 
