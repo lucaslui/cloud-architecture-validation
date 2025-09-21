@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: enricher
+  namespace: ingestion-environment-namespace
+  labels:
+    app: enricher
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: enricher
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: enricher
+    spec:
+      serviceAccountName: default
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: enricher
+          image: lucaslui/enricher:latest
+          imagePullPolicy: Always
+          envFrom:
+            - configMapRef:
+                name: enricher-config
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      restartPolicy: Always
