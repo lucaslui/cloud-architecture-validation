@@ -19,7 +19,6 @@ spec:
           image: docker.io/lucaslui/cred-perm-loader:latest
           imagePullPolicy: Always
           env:
-            # ====== Redis ======
             - name: REDIS_ADDR
               value: "redis:6379"
             - name: REDIS_DB
@@ -29,29 +28,21 @@ spec:
                 secretKeyRef:
                   name: redis-auth
                   key: REDIS_PASSWORD
-
-            # ====== Parâmetros do loader ======
             - name: AUTH_PASSWORD
               valueFrom:
                 secretKeyRef:
                   name: mqtt-auth
                   key: AUTH_PASSWORD
-
             - name: TELEMETRY_TOPIC
               value: "ingestion/telemetry"
-
             - name: COMMANDS_TOPIC_PREFIX
               value: "commands"
-
             - name: START_ID
               value: "1"
-
             - name: END_ID
               value: "10000"
-
             - name: BATCH_SIZE
               value: "100"
-
             - name: COLLECTOR_USERNAME
               value: "hems-collector"
             - name: COLLECTOR_PASSWORD
@@ -59,7 +50,6 @@ spec:
                 secretKeyRef:
                   name: collector-auth
                   key: COLLECTOR_PASSWORD
-
           resources:
             requests:
               cpu: "100m"
