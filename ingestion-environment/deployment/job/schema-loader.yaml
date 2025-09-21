@@ -1,0 +1,41 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: schema-loader
+  namespace: ingestion-environment-namespace
+  labels:
+    app: schema-loader
+spec:
+  backoffLimit: 1
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app: schema-loader
+    spec:
+      restartPolicy: Never
+      containers:
+        - name: loader
+          image: docker.io/lucaslui/schema-loader:latest
+          imagePullPolicy: Always
+          env:
+            - name: REDIS_ADDR
+              value: "redis:6379"
+            - name: REDIS_DB
+              value: "0"
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: redis-auth
+                  key: REDIS_PASSWORD
+            - name: SCHEMA_REGISTRY_FS_ROOT
+              value: "/app"
+            - name: SCHEMA_TTL_SECONDS
+              value: "0"
+          resources:
+            requests:
+              cpu: "100m"
+              memory: "128Mi"
+            limits:
+              cpu: "500m"
+              memory: "256Mi"
