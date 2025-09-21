@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: real-time-loader
+  namespace: ingestion-environment-namespace
+  labels:
+    app: real-time-loader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: real-time-loader
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  template:
+    metadata:
+      labels:
+        app: real-time-loader
+    spec:
+      serviceAccountName: influxdb
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        fsGroup: 10001
+      containers:
+        - name: real-time-loader
+          image: lucaslui/real-time-loader:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: real-time-loader-config
+          env: 
+            - name: INFLUX_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: influxdb-auth
+                  key: admin-token
+          resources:
+            requests:
+              cpu: "200m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "512Mi"
+      restartPolicy: Always
