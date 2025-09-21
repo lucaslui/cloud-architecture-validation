@@ -8,28 +8,40 @@ image:
 
 replicaCount: 1
 
-# Variáveis de ambiente do VerneMQ (modo docker) para liberar anônimos e simplificar
 additionalEnv:
   - name: DOCKER_VERNEMQ_ACCEPT_EULA
     value: "yes"
-
   - name: DOCKER_VERNEMQ_ALLOW_ANONYMOUS
-    value: "on"
+    value: "off"
+  - name: DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST
+    value: "0.0.0.0:1883"
+  - name: DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL
+    value: "info"
 
+  # Enable plugins
+  - name: DOCKER_VERNEMQ_PLUGINS__VMQ_DIVERSITY
+    value: "on"
   - name: DOCKER_VERNEMQ_PLUGINS__VMQ_PASSWD
     value: "off"
   - name: DOCKER_VERNEMQ_PLUGINS__VMQ_ACL
     value: "off"
 
-  # ÚNICO listener que queremos: MQTT TCP puro na 1883
-  - name: DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST
-    value: "0.0.0.0:1883"
+  # Authentication with Redis
+  - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__AUTH_REDIS__ENABLED
+    value: "on"
+  - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__HOST
+    value: "redis"
+  - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__PORT
+    value: "6379"
+  - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__DATABASE
+    value: "0"
+  - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__PASSWORD
+    valueFrom:
+      secretKeyRef:
+        name: redis-auth
+        key: REDIS_PASSWORD
 
-  # (opcional) verbosidade de log
-  - name: DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL
-    value: "info"
-
-  # (opcional) facilitar PoC em netsplit
+  # Facilitar PoC em netsplit
   - name: DOCKER_VERNEMQ_ALLOW_REGISTER_DURING_NETSPLIT
     value: "on"
   - name: DOCKER_VERNEMQ_ALLOW_PUBLISH_DURING_NETSPLIT
@@ -39,7 +51,7 @@ additionalEnv:
   - name: DOCKER_VERNEMQ_ALLOW_UNSUBSCRIBE_DURING_NETSPLIT
     value: "on"
 
-envFrom: []
+envFrom: [{ secretRef: { name: redis-auth } }]
 
 service:
   type: NodePort
@@ -62,7 +74,7 @@ ingress:
   tls: []
 
 persistentVolume:
-  enabled: false # para teste simples; usa emptyDir
+  enabled: false
   size: 5Gi
   accessModes: ["ReadWriteOnce"]
   annotations: {}
