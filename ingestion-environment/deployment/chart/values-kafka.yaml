@@ -202,7 +202,13 @@ broker:
     process.roles: "broker"
     controller.listener.names: "CONTROLLER"
     controller.quorum.voters: "0@kafka-controller-0.kafka-controller-headless.ingestion-environment-namespace.svc.cluster.local:9093"
-
+    listeners: "CLIENT://:9092,INTERNAL://:9094"
+    advertised.listeners: >
+      CLIENT://kafka:9092,
+      INTERNAL://kafka-broker-0.kafka-broker-headless.ingestion-environment-namespace.svc.cluster.local:9094
+    listener.security.protocol.map: "CLIENT:PLAINTEXT,INTERNAL:PLAINTEXT,CONTROLLER:PLAINTEXT"
+    inter.broker.listener.name: "INTERNAL"
+    
 provisioning:
   enabled: false
   waitForKafka: true
