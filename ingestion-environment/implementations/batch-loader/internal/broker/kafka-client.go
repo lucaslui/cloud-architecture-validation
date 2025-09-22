@@ -3,6 +3,8 @@ package broker
 
 import (
 	"context"
+	"log"
+	"os"
 	"time"
 
 	"github.com/lucaslui/hems/batch-loader/internal/config"
@@ -38,6 +40,8 @@ func NewKafkaClient(cfg *config.Config) *KafkaClient {
 
 		// NÃO usar auto-commit; commit manual em batch (ackCh + CommitMessages)
 		CommitInterval: 0,
+
+		ErrorLogger: log.New(os.Stderr, "kafka-reader ERR ", 0),
 	})
 	return &KafkaClient{Reader: r}
 }
