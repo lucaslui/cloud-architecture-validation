@@ -1,6 +1,8 @@
 package broker
 
 import (
+	"log"
+	"os"
 	"strings"
 	"time"
 
@@ -73,6 +75,9 @@ func NewKafkaConsumer(cfg *config.Config) *kafka.Reader {
 
 		// NÃO usar auto-commit; commit manual em batch (ackCh + CommitMessages)
 		CommitInterval: 0,
+
+		Logger:      log.New(os.Stdout, "kafka-reader ", 0),
+		ErrorLogger: log.New(os.Stderr, "kafka-reader ERR ", 0),
 	})
 }
 
