@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: batch-loader
+  namespace: ingestion-environment-namespace
+  labels:
+    app: batch-loader
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: batch-loader
+  template:
+    metadata:
+      labels:
+        app: batch-loader
+    spec:
+      containers:
+        - name: batch-loader
+          image: docker.io/lucaslui/batch-loader:latest
+          imagePullPolicy: IfNotPresent
+          envFrom:
+            - configMapRef:
+                name: batch-loader-config
+          env: 
+            - name: S3_ACCESS_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-auth
+                  key: MINIO_ACCESS_KEY
+            - name: S3_SECRET_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: minio-auth
+                  key: MINIO_SECRET_KEY
+          resources:
+            requests:
+              cpu: "250m"
+              memory: "256Mi"
+            limits:
+              cpu: "1"
+              memory: "1Gi"
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
