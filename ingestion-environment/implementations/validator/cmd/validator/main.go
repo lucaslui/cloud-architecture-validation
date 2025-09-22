@@ -64,18 +64,6 @@ func main() {
 		}()
 	}
 
-	go func() {
-		t := time.NewTicker(5 * time.Second)
-		defer t.Stop()
-		for range t.C {
-			s := kafkaClient.Consumer.Stats()
-			logger.Printf("[debug] reader stats: fetches=%d msgs=%d bytes=%d rebalances=%d timeouts=%d errors=%d wait=%s read=%s dial=%s",
-				s.Fetches, s.Messages, s.Bytes, s.Rebalances, s.Timeouts, s.Errors,
-				s.WaitTime, s.ReadTime, s.DialTime,
-			)
-		}
-	}()
-
 	// committer
 	go func() {
 		t := time.NewTicker(100 * time.Millisecond)
