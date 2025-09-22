@@ -19,13 +19,3 @@ delete-volumes:
 	rm -rf ./volumes/influxdb_data
 	rm -rf ./volumes/kafka_data
 	rm -rf ./volumes/minio_data
-
-create-kafka-port-forwarding:
-	kubectl -n ingestion-environment-namespace port-forward svc/kafka 9092:9092
-
-run-kafka-ui:
-	docker run --rm --network=host \
-	--add-host=kafka:127.0.0.1 \
-	-e KAFKA_CLUSTERS_0_NAME=hems \
-	-e KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS=localhost:9092 \
-	provectuslabs/kafka-ui:v0.7.2
