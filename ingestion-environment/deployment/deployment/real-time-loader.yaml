@@ -40,9 +40,9 @@ spec:
                   key: admin-token
           resources:
             requests:
-              cpu: "200m"
+              cpu: "125m"
               memory: "256Mi"
             limits:
-              cpu: "1"
+              cpu: "250m"
               memory: "512Mi"
       restartPolicy: Always
