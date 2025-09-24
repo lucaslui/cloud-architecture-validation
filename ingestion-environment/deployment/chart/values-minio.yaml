@@ -84,12 +84,12 @@ service:
 # ======== Recursos (pods do servidor MinIO) ========
 resources:
   requests:
+    cpu: 125m
+    memory: 256Mi
+  limits:
     cpu: 250m
     memory: 512Mi
-  limits:
-    cpu: "1"
-    memory: 2Gi
-resourcesPreset: micro
+# resourcesPreset: micro
 
 # ======== TLS ========
 tls:
@@ -112,7 +112,14 @@ console:
     type: ClusterIP
     ports:
       http: 9001
-  resourcesPreset: small
+  resources:
+    requests:
+      cpu: 125m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+  # resourcesPreset: small
   livenessProbe:
     enabled: true
     initialDelaySeconds: 5
