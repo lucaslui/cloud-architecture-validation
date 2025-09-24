@@ -35,7 +35,7 @@ data:
   KAFKA_READER_READ_BACKOFF_MIN_MS: "100"
   KAFKA_READER_READ_BACKOFF_MAX_MS: "1000"
 
-  PROCESSING_WORKERS: "8"
+  PROCESSING_WORKERS: "2"
 
   # Opcional — sua imagem já define isso como ENV
   CONTEXT_STORE_PATH: "/app/device-context.json"
