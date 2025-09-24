@@ -134,7 +134,14 @@ defaultInitContainers:
 controller:
   replicaCount: 1
   controllerOnly: true
-  resourcesPreset: "small"
+  resources:
+    requests:
+      cpu: 125m
+      memory: 256Mi
+    limits:
+      cpu: 250m
+      memory: 512Mi
+  # resourcesPreset: "nano"
   quorumBootstrapServers: "kafka-controller-headless:9093"
   config:
     log.dirs: "/bitnami/kafka/logs"
@@ -168,7 +175,14 @@ controller:
 
 broker:
   replicaCount: 1
-  resourcesPreset: "small"
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 500m
+      memory: 1Gi
+  # resourcesPreset: "small"
   persistence:
     enabled: true
     size: 3Gi
