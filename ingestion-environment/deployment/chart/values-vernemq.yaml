@@ -84,7 +84,7 @@ resources:
     cpu: 500m
     memory: 512Mi
   limits:
-    cpu: 2000m
+    cpu: 1500m
     memory: 2048Mi
 nodeSelector: {}
 tolerations: []
