@@ -79,7 +79,13 @@ persistentVolume:
   accessModes: ["ReadWriteOnce"]
   annotations: {}
 
-resources: {}
+resources: 
+  requests:
+    cpu: 250m
+    memory: 256Mi
+  limits:
+    cpu: 1000m
+    memory: 1000Mi
 nodeSelector: {}
 tolerations: []
 podAntiAffinity: soft
