@@ -16,7 +16,11 @@ additionalEnv:
   - name: DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST
     value: "0.0.0.0:1883"
   - name: DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL
-    value: "info"
+    value: "warning"
+  - name: DOCKER_VERNEMQ_SYSTREE_ENABLED
+    value: "off"
+  - name: DOCKER_VERNEMQ_LISTENER__TCP__ALLOWED_PROTOCOL_VERSIONS
+    value: "4"
 
   # Enable plugins
   - name: DOCKER_VERNEMQ_PLUGINS__VMQ_DIVERSITY
@@ -40,6 +44,24 @@ additionalEnv:
       secretKeyRef:
         name: redis-auth
         key: REDIS_PASSWORD
+
+  # Parâmetros para melhorar performance
+  - name: DOCKER_VERNEMQ_LISTENER__TCP__NR_OF_ACCEPTORS
+    value: "40"
+  - name: DOCKER_VERNEMQ_LISTENER__MAX_CONNECTIONS
+    value: "20000"
+  - name: DOCKER_VERNEMQ_COORDINATE_REGISTRATIONS
+    value: "off"
+  - name: DOCKER_VERNEMQ_MAX_INFLIGHT_MESSAGES
+    value: "10"
+  - name: DOCKER_VERNEMQ_MAX_ONLINE_MESSAGES
+    value: "1000"
+  - name: DOCKER_VERNEMQ_MAX_OFFLINE_MESSAGES
+    value: "0"
+  - name: DOCKER_VERNEMQ_ERLANG__ASYNC_THREADS
+    value: "128"
+  - name: DOCKER_VERNEMQ_ERLANG__MAX_PORTS
+    value: "1048576"
 
   # Facilitar PoC em netsplit
   - name: DOCKER_VERNEMQ_ALLOW_REGISTER_DURING_NETSPLIT
@@ -79,13 +101,13 @@ persistentVolume:
   accessModes: ["ReadWriteOnce"]
   annotations: {}
 
-resources: 
+resources:
   requests:
-    cpu: 500m
-    memory: 512Mi
+    cpu: "1"
+    memory: "2Gi"
   limits:
-    cpu: 1500m
-    memory: 2048Mi
+    cpu: "2"
+    memory: "4Gi"
 nodeSelector: {}
 tolerations: []
 podAntiAffinity: soft
