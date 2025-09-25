@@ -197,7 +197,7 @@ broker:
     log.dirs: "/bitnami/kafka/logs"
     metadata.log.dir: "/bitnami/kafka/meta"
     auto.create.topics.enable: "true"
-    num.partitions: "6"
+    num.partitions: "2"
     default.replication.factor: "1"
     min.insync.replicas: "1"
     offsets.topic.replication.factor: "1"
@@ -229,19 +229,19 @@ provisioning:
   resourcesPreset: "micro"
   topics:
     - name: raw-events-topic
-      partitions: 6
+      partitions: 2
       replicationFactor: 1
     - name: raw-events-dlq
       partitions: 1
       replicationFactor: 1
     - name: validated-events-topic
-      partitions: 6
+      partitions: 2
       replicationFactor: 1
     - name: validated-events-dlq
       partitions: 1
       replicationFactor: 1
     - name: enriched-events-topic
-      partitions: 6
+      partitions: 2
       replicationFactor: 1
     - name: enriched-events-dlq
       partitions: 1

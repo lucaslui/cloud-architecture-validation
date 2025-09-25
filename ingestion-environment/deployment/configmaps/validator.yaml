@@ -11,7 +11,7 @@ data:
   KAFKA_WRITER_TOPIC: "validated-events-topic"
   KAFKA_DLQ_TOPIC: "validated-events-dlq"
 
-  KAFKA_TOPIC_PARTITIONS: "6"
+  KAFKA_TOPIC_PARTITIONS: 2"
   KAFKA_DLQ_PARTITIONS: "1"
   KAFKA_RETENTION_MS: "86400000"
   KAFKA_COMPRESSION: "snappy"
