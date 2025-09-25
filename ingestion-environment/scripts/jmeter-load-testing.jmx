@@ -13,12 +13,12 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="BrokerHost" elementType="Argument">
             <stringProp name="Argument.name">BrokerHost</stringProp>
-            <stringProp name="Argument.value">localhost</stringProp>
+            <stringProp name="Argument.value">172.104.10.78</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="BrokerPort" elementType="Argument">
             <stringProp name="Argument.name">BrokerPort</stringProp>
-            <stringProp name="Argument.value">1883</stringProp>
+            <stringProp name="Argument.value">31883</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="Topic" elementType="Argument">
@@ -43,17 +43,12 @@
         <collectionProp name="Arguments.arguments">
           <elementProp name="NumberHomes" elementType="Argument">
             <stringProp name="Argument.name">NumberHomes</stringProp>
-            <stringProp name="Argument.value">5</stringProp>
+            <stringProp name="Argument.value">150</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="NumberMessages" elementType="Argument">
             <stringProp name="Argument.name">NumberMessages</stringProp>
-            <stringProp name="Argument.value">10</stringProp>
-            <stringProp name="Argument.metadata">=</stringProp>
-          </elementProp>
-          <elementProp name="PayloadSize" elementType="Argument">
-            <stringProp name="Argument.name">PayloadSize</stringProp>
-            <stringProp name="Argument.value">14336</stringProp>
+            <stringProp name="Argument.value">5</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="DelayPerMessageMs" elementType="Argument">
@@ -64,11 +59,11 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Infrastructure Parameters" enabled="true">
+      <Arguments guiclass="ArgumentsPanel" testclass="Arguments" testname="Infrastructure Parameters">
         <collectionProp name="Arguments.arguments">
           <elementProp name="RampUpTimeSec" elementType="Argument">
             <stringProp name="Argument.name">RampUpTimeSec</stringProp>
-            <stringProp name="Argument.value">10</stringProp>
+            <stringProp name="Argument.value">30</stringProp>
             <stringProp name="Argument.metadata">=</stringProp>
           </elementProp>
           <elementProp name="SAMPLES_DIR" elementType="Argument">
@@ -84,7 +79,7 @@
         </collectionProp>
       </Arguments>
       <hashTree/>
-      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group (Publishers)" enabled="true">
+      <ThreadGroup guiclass="ThreadGroupGui" testclass="ThreadGroup" testname="Thread Group (Publishers)">
         <stringProp name="ThreadGroup.num_threads">${NumberHomes}</stringProp>
         <stringProp name="ThreadGroup.ramp_time">${RampUpTimeSec}</stringProp>
         <boolProp name="ThreadGroup.same_user_on_next_iteration">true</boolProp>
@@ -95,12 +90,7 @@
         </elementProp>
       </ThreadGroup>
       <hashTree>
-        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Time (Group Threads)" enabled="true">
-          <stringProp name="groupSize">${NumberHomes}</stringProp>
-          <longProp name="timeoutInMs">10000</longProp>
-        </SyncTimer>
-        <hashTree/>
-        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter">
+        <CounterConfig guiclass="CounterConfigGui" testclass="CounterConfig" testname="Counter" enabled="true">
           <stringProp name="CounterConfig.start">1</stringProp>
           <stringProp name="CounterConfig.end"></stringProp>
           <stringProp name="CounterConfig.incr">1</stringProp>
@@ -111,7 +101,7 @@
         <hashTree/>
         <OnceOnlyController guiclass="OnceOnlyControllerGui" testclass="OnceOnlyController" testname="Once Only Controller"/>
         <hashTree>
-          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher">
+          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher" enabled="false">
             <stringProp name="mqtt.server">${BrokerHost}</stringProp>
             <stringProp name="mqtt.port">${BrokerPort}</stringProp>
             <stringProp name="mqtt.version">3.1.1</stringProp>
@@ -131,7 +121,32 @@
             <stringProp name="mqtt.conn_clean_session">true</stringProp>
           </net.xmeter.samplers.ConnectSampler>
           <hashTree/>
+          <net.xmeter.samplers.ConnectSampler guiclass="net.xmeter.gui.ConnectSamplerUI" testclass="net.xmeter.samplers.ConnectSampler" testname="MQTT Connect - Publisher (Cloud)">
+            <stringProp name="mqtt.server">${BrokerHost}</stringProp>
+            <stringProp name="mqtt.port">${BrokerPort}</stringProp>
+            <stringProp name="mqtt.version">3.1.1</stringProp>
+            <stringProp name="mqtt.conn_timeout">120</stringProp>
+            <stringProp name="mqtt.protocol">TCP</stringProp>
+            <stringProp name="mqtt.ws_path"></stringProp>
+            <boolProp name="mqtt.dual_ssl_authentication">false</boolProp>
+            <stringProp name="mqtt.clientcert_file_path"></stringProp>
+            <stringProp name="mqtt.clientcert_password"></stringProp>
+            <stringProp name="mqtt.user_name">CONTROLLER-${HOME_NUMBER}</stringProp>
+            <stringProp name="mqtt.password">nuza230490</stringProp>
+            <stringProp name="mqtt.client_id_prefix">CONTROLLER-${HOME_NUMBER}</stringProp>
+            <boolProp name="mqtt.client_id_suffix">false</boolProp>
+            <stringProp name="mqtt.conn_keep_alive">600</stringProp>
+            <stringProp name="mqtt.conn_attampt_max">0</stringProp>
+            <stringProp name="mqtt.reconn_attampt_max">0</stringProp>
+            <stringProp name="mqtt.conn_clean_session">true</stringProp>
+          </net.xmeter.samplers.ConnectSampler>
+          <hashTree/>
         </hashTree>
+        <SyncTimer guiclass="TestBeanGUI" testclass="SyncTimer" testname="Synchronizing Time (Group Threads)">
+          <stringProp name="groupSize">${NumberHomes}</stringProp>
+          <stringProp name="timeoutInMs">${__jexl3(${RampUpTimeSec} * 1000)}</stringProp>
+        </SyncTimer>
+        <hashTree/>
         <LoopController guiclass="LoopControlPanel" testclass="LoopController" testname="Loop Controller" enabled="false">
           <stringProp name="LoopController.loops">${NumberMessages}</stringProp>
         </LoopController>
@@ -228,7 +243,7 @@
         <stringProp name="filename"></stringProp>
       </ResultCollector>
       <hashTree/>
-      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report" enabled="true">
+      <ResultCollector guiclass="SummaryReport" testclass="ResultCollector" testname="Summary Report">
         <boolProp name="ResultCollector.error_logging">false</boolProp>
         <objProp>
           <name>saveConfig</name>
