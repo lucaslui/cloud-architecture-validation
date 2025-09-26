@@ -3,7 +3,7 @@ fullnameOverride: ""
 
 image:
   repository: vernemq/vernemq
-  tag: 1.12.3
+  tag: 2.1.1
   pullPolicy: IfNotPresent
 
 replicaCount: 1
@@ -13,8 +13,6 @@ additionalEnv:
     value: "yes"
   - name: DOCKER_VERNEMQ_ALLOW_ANONYMOUS
     value: "off"
-  - name: DOCKER_VERNEMQ_LISTENER__TCP__LOCALHOST
-    value: "0.0.0.0:1883"
   - name: DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL
     value: "warning"
   - name: DOCKER_VERNEMQ_SYSTREE_ENABLED
@@ -76,17 +74,24 @@ additionalEnv:
 envFrom: [{ secretRef: { name: redis-auth } }]
 
 service:
-  type: NodePort
+  enabled: true
+  type: "NodePort"
   mqtt:
     enabled: true
     port: 1883
     nodePort: 31883
   mqtts:
     enabled: false
+    port: 8883
+    nodePort: 31888
   ws:
     enabled: false
+    port: 8080
+    nodePort: 32080  
   wss:
     enabled: false
+    port: 8443
+    nodePort: 32084
 
 ingress:
   enabled: false
@@ -109,7 +114,12 @@ resources:
     cpu: "2"
     memory: "4Gi"
 nodeSelector: {}
-tolerations: []
+  # vernemq-dedicated: "true"
+tolerations: {}
+  # - key: "vernemq-dedicated"
+  #   operator: "Equal"
+  #   value: "true"
+  #   effect: "NoSchedule"
 podAntiAffinity: soft
 
 securityContext:
@@ -162,4 +172,4 @@ global:
     rkePathPrefix: ""
     rkeWindowsPathPrefix: ""
     systemProjectId: p-hmqtg
-    url: https://rancher.172-104-5-78.sslip.io
+    url: https://rancher.172-104-5-78.sslip.io  
