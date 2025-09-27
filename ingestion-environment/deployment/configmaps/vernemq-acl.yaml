@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: vernemq-acl
+  namespace: ingestion-environment-namespace
+data:
+  vmq.acl: |
+    # clientes sem username "anonymous"
+    topic write ingestion/telemetry
+
+    # cliente user collector
+    user hems-collector
+    topic read ingestion/telemetry
