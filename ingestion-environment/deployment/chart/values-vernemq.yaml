@@ -12,7 +12,7 @@ additionalEnv:
   - name: DOCKER_VERNEMQ_ACCEPT_EULA
     value: "yes"
   - name: DOCKER_VERNEMQ_ALLOW_ANONYMOUS
-    value: "off"
+    value: "on"
   - name: DOCKER_VERNEMQ_LOG__CONSOLE__LEVEL
     value: "warning"
   - name: DOCKER_VERNEMQ_SYSTREE_ENABLED
@@ -22,15 +22,17 @@ additionalEnv:
 
   # Enable plugins
   - name: DOCKER_VERNEMQ_PLUGINS__VMQ_DIVERSITY
-    value: "on"
+    value: "off"
+  - name: DOCKER_VERNEMQ_PLUGINS__VMQ_WEBHOOKS
+    value: "off"
   - name: DOCKER_VERNEMQ_PLUGINS__VMQ_PASSWD
     value: "off"
   - name: DOCKER_VERNEMQ_PLUGINS__VMQ_ACL
-    value: "off"
+    value: "on"
 
   # Authentication with Redis
   - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__AUTH_REDIS__ENABLED
-    value: "on"
+    value: "off"
   - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__HOST
     value: "redis"
   - name: DOCKER_VERNEMQ_VMQ_DIVERSITY__REDIS__PORT
@@ -154,8 +156,22 @@ statefulset:
     failureThreshold: 3
 
 secretMounts: []
-extraVolumes: []
-extraVolumeMounts: []
+extraVolumes:
+  - name: vmq-acl
+    configMap:
+      name: vernemq-acl
+  - name: tls
+    secret:
+      secretName: vernemq-tls
+
+extraVolumeMounts:
+  - name: vmq-acl
+    mountPath: /etc/vernemq/vmq.acl
+    subPath: vmq.acl
+    readOnly: true
+  - name: tls
+    mountPath: /etc/ssl
+    readOnly: true
 
 pdb:
   enabled: false
