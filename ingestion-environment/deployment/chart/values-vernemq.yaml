@@ -63,6 +63,14 @@ additionalEnv:
   - name: DOCKER_VERNEMQ_ERLANG__MAX_PORTS
     value: "1048576"
 
+  # TLS secure MQTT (listener on port 8883)
+  - name: DOCKER_VERNEMQ_LISTENER__SSL__CAFILE
+    value: "/etc/ssl/cacerts.pem"
+  - name: DOCKER_VERNEMQ_LISTENER__SSL__CERTFILE
+    value: "/etc/ssl/cert.pem"
+  - name: DOCKER_VERNEMQ_LISTENER__SSL__KEYFILE
+    value: "/etc/ssl/key.pem"
+
   # Facilitar PoC em netsplit
   - name: DOCKER_VERNEMQ_ALLOW_REGISTER_DURING_NETSPLIT
     value: "on"
@@ -83,13 +91,13 @@ service:
     port: 1883
     nodePort: 31883
   mqtts:
-    enabled: false
+    enabled: true
     port: 8883
     nodePort: 31888
   ws:
     enabled: false
     port: 8080
-    nodePort: 32080  
+    nodePort: 32080
   wss:
     enabled: false
     port: 8443
@@ -188,4 +196,4 @@ global:
     rkePathPrefix: ""
     rkeWindowsPathPrefix: ""
     systemProjectId: p-hmqtg
-    url: https://rancher.172-104-5-78.sslip.io  
+    url: https://rancher.172-104-5-78.sslip.io
